@@ -9,7 +9,8 @@ New here? Read [Quickstart](getting-started/quickstart.md), then [Overview](conc
 ## Getting started
 
 - [Installation](getting-started/installation.md) - packages, requirements, what is published and what is not
-- [Quickstart](getting-started/quickstart.md) - your first app in ten minutes
+- [Quickstart](getting-started/quickstart.md) - the core ideas in ten minutes
+- [Your first app](getting-started/first-app.md) - scaffold, add plugins, serve HTTP, test: start to finish
 
 ## Concepts
 
