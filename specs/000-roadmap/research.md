@@ -52,3 +52,25 @@ TypeScript 6.0.3 is used instead of 7.x because the declaration-bundling toolcha
 ## R6. Repository naming
 
 Package scope `@aimbrace`. The brief uses `@acryl/*` as placeholder names; they are replaced by `@aimbrace/*` here.
+
+## R7. Scope-local values are a plain chain, not Cordis services
+
+Cordis scopes a service by isolation: `ctx.isolate(name)` must be applied to the context *before*
+the fiber that will provide or consume the service is created. A task scope needs the opposite:
+"open a scope now, provide a task-local `Budget` later, concurrently, in several sibling scopes".
+Providing the same service name from sibling fibers in one namespace is an error in Cordis
+(`service ... has been registered`), and isolating lazily would make child scopes created earlier
+blind to values provided later.
+
+**Decision**: `Scope.provide/get/maybe` use a small per-scope `Map` chain (scope, parent scope, ...,
+then the app's Cordis services). It is not injectable into plugins and has no lifecycle graph, so it
+is context-local state (comparable to `AsyncLocalStorage`), not a second DI container. Plugins
+installed into a scope still use real Cordis injection, and `install(..., { isolate })` uses real
+Cordis isolation for encapsulated subtrees.
+
+## R8. Cordis service removal is asynchronous
+
+The function returned by `ctx.provide` removes the service, then waits for dependents to unload,
+then touches the owning fiber's store. A caller that drops the returned promise and disposes the
+fiber immediately makes Cordis throw an unhandled `TypeError` (found by an unhandled-rejection report
+in the reactivation tests). AIMBRACE awaits every service removal before a fiber is disposed.

@@ -238,7 +238,8 @@ function distance(a: string, b: string): number {
   return previous[y.length] ?? 0
 }
 
-function suggest(wanted: string, known: Iterable<string>): string[] {
+/** Close matches for `wanted` among `known` names (typo hints). */
+export function suggestNames(wanted: string, known: Iterable<string>): string[] {
   const threshold = Math.max(2, Math.floor(wanted.length * 0.3))
   return [...known]
     .map((name) => ({ name, score: distance(wanted, name) }))
@@ -367,6 +368,23 @@ function findCycle(component: number[], adjacency: number[][]): number[] {
 }
 
 /**
+ * Check one peer requirement. Returns the error, or `undefined` when the peer
+ * is present and its version satisfies `range`.
+ */
+export function peerProblem(
+  owner: string,
+  peer: string,
+  range: string,
+  found: { readonly version?: string | undefined } | undefined,
+): PeerError | undefined {
+  if (!isValidRange(range)) return new PeerError(owner, peer, range, found?.version, true)
+  if (!found) return new PeerError(owner, peer, range, undefined)
+  const version = found.version
+  if (version && parseVersion(version) && satisfies(version, range)) return undefined
+  return new PeerError(owner, peer, range, version ?? '(no version)')
+}
+
+/**
  * Build and validate the dependency graph of a set of plugins.
  *
  * Pure: no plugin code runs. Pass the metas in registration order; ties in the
@@ -421,10 +439,13 @@ export function buildGraph(metas: readonly PluginMeta[], options: BuildGraphOpti
       const provider = providers.get(service)?.[0]
       if (provider === undefined) {
         if (external.has(service)) continue
-        addError(new MissingDependencyError(node.id, service, suggest(service, knownServices)), {
-          plugin: node.id,
-          service,
-        })
+        addError(
+          new MissingDependencyError(node.id, service, suggestNames(service, knownServices)),
+          {
+            plugin: node.id,
+            service,
+          },
+        )
         continue
       }
       edges.push({ from: provider, to: node.id, service, optional: false })
@@ -502,18 +523,8 @@ export function buildGraph(metas: readonly PluginMeta[], options: BuildGraphOpti
   // 6. peers
   for (const node of nodes) {
     for (const [peer, range] of Object.entries(node.peers ?? {})) {
-      const found = byId.get(peer)
-      if (!isValidRange(range)) {
-        addError(new PeerError(node.id, peer, range, found?.version, true), { plugin: node.id })
-      } else if (!found) {
-        addError(new PeerError(node.id, peer, range, undefined), { plugin: node.id })
-      } else if (
-        !(found.version && parseVersion(found.version) && satisfies(found.version, range))
-      ) {
-        addError(new PeerError(node.id, peer, range, found.version ?? '(no version)'), {
-          plugin: node.id,
-        })
-      }
+      const problem = peerProblem(node.id, peer, range, byId.get(peer))
+      if (problem) addError(problem, { plugin: node.id })
     }
   }
 

@@ -1,5 +1,16 @@
 export type {
+  App,
+  AppOptions,
+  AppSnapshot,
+  AppState,
+  LeakProbe,
+  PluginSnapshot,
+  ScopeSnapshot,
+} from './app'
+export { createApp } from './app'
+export type {
   BaseContext,
+  InstallOptions,
   PluginContext,
   PluginHandle,
   Scope,
@@ -15,20 +26,28 @@ export type {
 } from './core-hooks'
 export type { Disposer, Owner } from './disposable'
 export { DisposerStack } from './disposable'
-export type { ConfigIssue } from './errors'
+export type { ConfigIssue, PluginPhase } from './errors'
 export {
   AimbraceError,
+  AppStateError,
   ConfigError,
   DependencyCycleError,
   DisposalError,
   DisposedError,
   DuplicatePluginError,
+  DuplicateProvideError,
   DuplicateProviderError,
   DuplicateRegistryEntryError,
   GraphValidationError,
   InvalidNameError,
+  InvalidServiceValueError,
   MissingDependencyError,
+  MissingServiceError,
   PeerError,
+  PluginError,
+  StartupValidationError,
+  UndeclaredAccessError,
+  UnfulfilledProvideError,
 } from './errors'
 export type {
   BuildGraphOptions,
@@ -37,7 +56,7 @@ export type {
   GraphNode,
   PluginMeta,
 } from './graph'
-export { buildGraph, Graph } from './graph'
+export { buildGraph, Graph, peerProblem, suggestNames } from './graph'
 export type { HookEvent, HookName, HookShape, Unhook } from './hooks'
 export { Hooks, ScopedHooks } from './hooks'
 export type {

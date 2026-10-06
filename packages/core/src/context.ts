@@ -17,8 +17,22 @@ export interface BaseContext extends Owner {
   registry<T>(token: RegistryToken<T>): Registry<T>
   /** Open a child scope. Disposing the parent disposes the child first. */
   scope(name: string, options?: ScopeOptions): Promise<Scope>
-  /** Install a plugin into this context's lifetime. Returns a handle to remove it early. */
-  use(plugin: PluginLike, config?: unknown): Promise<PluginHandle>
+  /**
+   * Install a plugin at runtime, tied to this context's lifetime. Returns a
+   * handle to remove it early.
+   */
+  install(plugin: PluginLike, config?: unknown, options?: InstallOptions): Promise<PluginHandle>
+}
+
+/** Options for installing a plugin at runtime. */
+export interface InstallOptions {
+  /**
+   * Services that become private to the installed subtree (plugin-graph
+   * encapsulation, built on Cordis `isolate`): the installed plugins provide and
+   * consume their own copy, invisible outside. Requirements on these services
+   * are resolved dynamically (the plugin stays `pending` until provided).
+   */
+  isolate?: readonly ServiceToken<unknown>[]
 }
 
 /** Options for opening a scope. */

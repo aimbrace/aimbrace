@@ -66,6 +66,15 @@ describe('core boundaries (constitution I and VII)', () => {
     expect(declared.filter((name) => !ALLOWED_DEPENDENCIES.includes(name))).toEqual([])
   })
 
+  it('imports cordis only inside src/internal/cordis.ts', () => {
+    const offenders = files
+      .filter((file) => !file.endsWith(join('internal', 'cordis.ts')))
+      .filter((file) => specifiers(file).includes('cordis'))
+    expect(offenders).toEqual([])
+    const wrapper = files.find((file) => file.endsWith(join('internal', 'cordis.ts')))
+    expect(wrapper && specifiers(wrapper)).toContain('cordis')
+  })
+
   it('knows nothing about hosts or vendors', () => {
     const forbidden = /\b(openai|anthropic|postgres|react|next\.js|fastify|hono|express)\b/i
     const offenders = files.filter((file) => forbidden.test(readFileSync(file, 'utf8')))

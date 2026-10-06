@@ -22,6 +22,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "cordis": "4.0.0-rc.10",
     "hookable": "6.1.2"
   },
   "repository": {

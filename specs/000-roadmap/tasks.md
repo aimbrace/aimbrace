@@ -22,7 +22,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M3 - App, Context, Scope, lifecycle (`specs/003-app-lifecycle`)
 
-- [ ] see `specs/003-app-lifecycle/tasks.md`
+- [x] done, see `specs/003-app-lifecycle/tasks.md`
 
 ## M4 - Config and loader (`specs/004-config-loader`)
 

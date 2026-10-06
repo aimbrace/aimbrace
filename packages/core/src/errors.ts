@@ -186,3 +186,119 @@ export class GraphValidationError extends AimbraceError {
     this.errors = errors
   }
 }
+
+/** Which step of a plugin's life failed. */
+export type PluginPhase = 'config' | 'install' | 'start' | 'stop' | 'dispose'
+
+/** A plugin failed in one of its lifecycle functions. */
+export class PluginError extends AimbraceError {
+  readonly plugin: string
+  readonly phase: PluginPhase
+
+  constructor(plugin: string, phase: PluginPhase, cause: unknown) {
+    super(
+      'E_PLUGIN',
+      `Plugin "${plugin}" failed during ${phase}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause },
+    )
+    this.plugin = plugin
+    this.phase = phase
+  }
+}
+
+/** A plugin used a service it did not declare (the runtime twin of the compile error). */
+export class UndeclaredAccessError extends AimbraceError {
+  readonly plugin: string
+  readonly service: string
+
+  constructor(plugin: string, service: string, action: 'get' | 'maybe' | 'provide') {
+    const hint =
+      action === 'get'
+        ? 'add it to `requires`'
+        : action === 'maybe'
+          ? 'add it to `optional`'
+          : 'add it to `provides`'
+    super(
+      'E_UNDECLARED_ACCESS',
+      `Plugin "${plugin}" called ${action}() on service "${service}" without declaring it; ${hint}.`,
+    )
+    this.plugin = plugin
+    this.service = service
+  }
+}
+
+/** A service that should exist is not available. */
+export class MissingServiceError extends AimbraceError {
+  readonly service: string
+
+  constructor(service: string) {
+    super('E_MISSING_SERVICE', `Service "${service}" is not available.`)
+    this.service = service
+  }
+}
+
+/** A plugin declared `provides` but did not provide every service. */
+export class UnfulfilledProvideError extends AimbraceError {
+  readonly plugin: string
+  readonly services: readonly string[]
+
+  constructor(plugin: string, services: readonly string[]) {
+    super(
+      'E_UNFULFILLED_PROVIDE',
+      `Plugin "${plugin}" declares ${services.map((s) => `"${s}"`).join(', ')} in \`provides\` but setup did not provide ${
+        services.length === 1 ? 'it' : 'them'
+      }.`,
+    )
+    this.plugin = plugin
+    this.services = services
+  }
+}
+
+/** The same service was provided twice in one place. */
+export class DuplicateProvideError extends AimbraceError {
+  readonly service: string
+
+  constructor(service: string, where: string) {
+    super('E_DUPLICATE_PROVIDE', `Service "${service}" was already provided in ${where}.`)
+    this.service = service
+  }
+}
+
+/** A service value was `null` or `undefined`. */
+export class InvalidServiceValueError extends AimbraceError {
+  readonly service: string
+
+  constructor(service: string) {
+    super(
+      'E_INVALID_SERVICE_VALUE',
+      `Service "${service}" cannot be provided as null or undefined.`,
+    )
+    this.service = service
+  }
+}
+
+/** An operation is not allowed in the app's current state. */
+export class AppStateError extends AimbraceError {
+  readonly state: string
+
+  constructor(state: string, message: string) {
+    super('E_APP_STATE', `${message} (app state: ${state}).`)
+    this.state = state
+  }
+}
+
+/** Starting failed validation in more than one way. */
+export class StartupValidationError extends AimbraceError {
+  readonly errors: readonly AimbraceError[]
+
+  constructor(errors: readonly AimbraceError[]) {
+    super(
+      'E_STARTUP_INVALID',
+      `The app cannot start (${errors.length} problems):\n${errors
+        .map((error) => `  - ${error.message}`)
+        .join('\n')}`,
+      { cause: errors[0] },
+    )
+    this.errors = errors
+  }
+}
