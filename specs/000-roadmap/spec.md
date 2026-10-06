@@ -2,7 +2,10 @@
 
 **Feature Branch**: `main` (maintainer workflow, no feature branches)
 **Created**: 2026-10-06
-**Status**: In progress (see `tasks.md` for the milestone ledger)
+**Status**: M0-M9 done; M10 pivoted 2026-10-06 (see `tasks.md` milestone ledger).
+Pivot: the website shipped in the sibling repo; `specs/010-scaffolder-rebuild`
+replaces the framework direction with a `create-aimbrace` scaffolder on raw
+Cordis. `docs/aimbrace_spec.md` no longer governs new work.
 **Input**: `docs/aimbrace_spec.md` (the architecture brief) and the user request: "create our own framework based on Cordis, using Cordis, Effect, Fastify, Hookable, Unplugin and Hono as reference libraries, plan with spec-kit, execute the milestones, push every checkpoint, document it and publish an explainer website".
 
 ## Summary

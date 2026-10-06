@@ -74,3 +74,18 @@ The function returned by `ctx.provide` removes the service, then waits for depen
 then touches the owning fiber's store. A caller that drops the returned promise and disposes the
 fiber immediately makes Cordis throw an unhandled `TypeError` (found by an unhandled-rejection report
 in the reactivation tests). AIMBRACE awaits every service removal before a fiber is disposed.
+
+## R9. Pivot from a composition runtime to a scaffolder (constitution 2.0.0)
+
+**Decision**: the product is `create-aimbrace`, a scaffolder with a fixed set of templates on raw Cordis. The
+runtime packages (`@aimbrace/*`) stay in the repository, frozen, and are not imported by any new work.
+
+**Why**: an independent review (`specs/010-scaffolder-rebuild/review.md`) found that the runtime was about
+7,000 lines of shipped source with its own kernel, registry, hooks, graph and error taxonomy, while the thing a
+new user needs is a working project. The composition model is Cordis itself; a second model on top of it adds
+maintenance without a user. Templates that import Cordis directly show the same ideas with no framework to learn
+or version. The original six-library ranking was read as "combine six runtimes" when the useful reading was
+"scaffold projects that use them".
+
+**Consequences**: no `@aimbrace/*` dependency in any template; frozen packages get no new features; cutover of the
+old packages is a later spec. Amendment recorded in the constitution header and the version line.

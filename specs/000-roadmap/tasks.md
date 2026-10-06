@@ -48,6 +48,21 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 - [x] done, see `specs/009-docs/tasks.md`
 
-## M10 - Website and release hygiene (`specs/010-website`)
+## M10 - Website (shipped in sibling repo) and scaffolder rebuild (`specs/010-scaffolder-rebuild`)
 
-- [ ] see `specs/010-website/tasks.md`
+Website, done outside this folder:
+
+- [x] Site built in sibling repo `aimbrace.github.io` (4 commits), Pages
+  deploys green, home returns 200 (evidence 2026-10-06).
+
+Rebuild (ponytail pivot, see `specs/010-scaffolder-rebuild/review.md`):
+
+- [ ] T100 constitution amendment
+- [ ] T101 `create-aimbrace` CLI skeleton
+- [ ] T102 Hono templates (base + agent)
+- [ ] T103 Fastify templates (base + agent)
+- [ ] T104 verify script
+- [ ] T105 template tests
+- [ ] T106 workspace check wiring
+- [ ] T107 quickstart page
+- [ ] T108 npm publish (blocked until owner `npm login`)
