@@ -1,7 +1,12 @@
-# Tasks: M10 scaffolder rebuild ledger
+# Tasks: M10 scaffolding ledger
 
 Spec: [`./spec.md`](./spec.md). Plan: [`./plan.md`](./plan.md).
 A task closes only when its exit evidence exists on `main`.
+
+Owner correction 2026-10-06: no separate `create-aimbrace` package. Scaffolding
+ships inside the aimbrace CLI (`aimbrace init`). T101-T105 and T107 below were
+built as a standalone package first; T109 rewires that content into aimbrace
+and deletes the standalone package. Nothing is published separately (T108 dropped).
 
 ## T100 - Constitution amendment
 
@@ -11,62 +16,68 @@ A task closes only when its exit evidence exists on `main`.
 - Evidence: constitution amendment 2.0.0, research R9.
 - Exit: diff of the constitution plus this task checked.
 
-## T101 - `create-aimbrace` CLI skeleton
+## T101 - Questionnaire and copy logic (built standalone, rewired in T109)
 
-- [x] `scaffolder/packages/create`: name/host/extras questionnaire plus matching
-  flags, refuse-if-target-dirty, file copy, next-steps output.
-- Evidence: create-aimbrace CLI, 12 tests.
-- Exit: `create-aimbrace --help` works; setups covered by T106.
+- [x] Name/host/extras questionnaire plus matching flags, refuse-if-target-dirty,
+  file copy with substitution, next-steps output.
+- Evidence: 12 tests (built under `scaffolder/packages/create`, moved in T109).
+- Exit: covered by T109.
 
 ## T102 - Hono templates (base + agent)
 
-- [x] `scaffolder/templates/hono` and `hono-agent`: Cordis app plus route;
-  agent variant adds mock model, memory, tools, one task scope. Offline
-  deterministic, no vendor SDK.
-- Evidence: hono and hono-agent templates, 3 and 7 tests from a fresh install.
-- Exit: both install, boot, and serve 200 (via T106).
+- [x] `hono` and `hono-agent`: Cordis app plus route; agent variant adds mock
+  model, memory, tools, one task scope. Offline deterministic, no vendor SDK.
+- Evidence: 3 and 7 tests from a fresh install (moved under `templates/` in T109).
+- Exit: both install, boot, and serve 200 (via T109 verify).
 
 ## T103 - Fastify templates (base + agent)
 
 - [x] Same as T102 on Fastify, same route body.
-- Evidence: fastify and fastify-agent templates, same tests.
-- Exit: both install, boot, and serve the identical 200 (via T106).
+- Evidence: same tests (moved under `templates/` in T109).
+- Exit: both install, boot, and serve the identical 200 (via T109 verify).
 
 ## T104 - Verify script
 
-- [x] `scaffolder/scripts/verify-scaffolder.mjs`: scaffolds all 4 templates in
-  temp dirs, installs, boots, curls the route, runs template tests, scans for
-  `@aimbrace/*` deps (any hit fails the build), enforces template count cap.
-- Evidence: verify-scaffolder.mjs passes end to end.
+- [x] Verify script: scaffolds all 4 templates in temp dirs, installs, boots,
+  curls the route, runs template tests, scans for `@aimbrace/*` deps (any hit
+  fails the build), enforces template count cap.
+- Evidence: passes end to end (moved to `scripts/verify-scaffolder.mjs` in T109).
 - Exit: script passes end to end on this machine.
 
 ## T105 - Template tests
 
 - [x] Per-template vitest suites: route test for all four, offline agent test
-  for the two agent variants, refuse-overwrite test for the CLI.
-- Evidence: per-template tests and CLI refusal test.
-- Exit: suites green inside T106 runs.
+  for the two agent variants, refuse-overwrite test.
+- Evidence: suites green (moved with templates in T109).
+- Exit: suites green inside T109 verify runs.
 
-## T106 - Workspace check wiring
+## T106 - Workspace check wiring (superseded by T109)
 
-- [ ] Scaffolder `check` (lint, build, template tests, verify script) wired so
-  the repo gate covers it; frozen packages untouched.
-- Exit: gate green.
+- Superseded: the gate wiring happens as part of the rewire, not the standalone.
 
 ## T107 - Quickstart page
 
-- [x] `scaffolder/docs/quickstart.md`: zero to serving app on one page.
-  A stranger (or fresh container) completes it in under 10 minutes.
-- Evidence: quickstart in scaffolder/docs/quickstart.md.
-- Exit: completed run plus time note in the ledger.
+- [x] Zero to serving app on one page.
+- Evidence: page content (moved into `docs/` in T109).
+- Exit: completed run plus time note in the ledger (redone after rewire).
 
-## T108 - npm publish
+## T108 - npm publish (dropped)
 
-- [ ] (BLOCKED) `npm login` (owner) plus org, then `pnpm publish` of `create-aimbrace`;
-  `npm view` resolves; fresh `npx create-aimbrace` works in an empty dir.
-- Exit: version number recorded here. Blocked until the owner logs in.
+- Dropped 2026-10-06: no separate package exists to publish. Scaffolding ships
+  with the aimbrace CLI whenever it is released.
+
+## T109 - Rewire into aimbrace (the actual deliverable)
+
+- [ ] Move questionnaire plus copy logic into `packages/cli` by extending
+  `init` (no new binary name); move the 4 templates to top-level `templates/`;
+  move the verify script to `scripts/verify-scaffolder.mjs`; move the
+  quickstart into `docs/`; delete `scaffolder/` entirely.
+- [ ] Re-run the verify script end to end plus the repo gate, both green.
+- Exit: `aimbrace init` offers host plus extras, all 4 templates verify green,
+  `scaffolder/` gone, gate green.
 
 ## Cutover (explicitly NOT this milestone)
 
-Old `packages/`, `plugins/`, `examples/` get deleted and the site shrinks only
-after two real apps ship from the scaffolder. That decision gets its own spec.
+Old `packages/` runtime code (core, loader, hosts) gets deleted and the site
+shrinks only after two real apps ship from `aimbrace init`. That decision gets
+its own spec.
