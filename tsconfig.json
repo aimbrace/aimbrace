@@ -1,4 +1,17 @@
 {
-  "files": [],
-  "references": []
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@aimbrace/core": ["./packages/core/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/test",
+    "plugins/*/src",
+    "plugins/*/test",
+    "examples/*/src",
+    "examples/*/test"
+  ]
 }

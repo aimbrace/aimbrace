@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "pnpm -r --workspace-concurrency=1 run build",
-    "typecheck": "tsc -b tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",

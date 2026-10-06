@@ -182,6 +182,12 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.19.1)(vite@8.3.2(@types/node@24.19.1))
 
+  packages/core:
+    dependencies:
+      hookable:
+        specifier: 6.1.2
+        version: 6.1.2
+
 packages:
 
   '@biomejs/biome@2.5.15':
