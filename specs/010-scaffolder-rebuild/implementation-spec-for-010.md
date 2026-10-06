@@ -1,64 +1,45 @@
-# Implementation work order: M10 create-aimbrace scaffolder
+# Implementation work order: M10 rewire into aimbrace (T109)
 
-Paste everything below the line to Claude. It assumes a checkout of the
-`aimbrace/aimbrace` repo with the spec-kit structure intact.
+## Situation
 
----
+T100-T105 and T107 are done but were built as a standalone `scaffolder/`
+package (`create-aimbrace`). Owner decision: no separate package. Everything
+moves into the aimbrace CLI. The 4 commits on `main` stay as checkpoints; this
+task rewires their content, it does not revert them.
 
-You are building M10 in `/Users/musichen/_projects/p11_acr_agentcontextrelay/acryldev/acryl_blends_project/aimbrace-cordis-based-framework-experiments/aimbrace`.
-Work autonomously, commit every green checkpoint to `main`, push each one.
+## 1. Read first (before touching code)
 
-## 1. Read first (in this order, before writing any code)
+1. `specs/010-scaffolder-rebuild/tasks.md` - T109 is the only open build task.
+2. `specs/010-scaffolder-rebuild/spec.md` - FR-001 (`aimbrace init`),
+   FR-002, FR-004, FR-007 (upstream `cordis@4.0.0-rc.10`, no `@deepseek-ai/*`).
 
-1. `specs/010-scaffolder-rebuild/review.md` - why the old direction is frozen.
-2. `specs/010-scaffolder-rebuild/spec.md` - the full spec, everything testable.
-3. `specs/010-scaffolder-rebuild/plan.md` - architecture and salvage list.
-4. `specs/010-scaffolder-rebuild/tasks.md` - the ledger, work T100 first.
-5. `specs/000-roadmap/tasks.md` (M10 entry) - check off each task as it lands.
-6. Salvage sources only: `packages/cli/src/builtins/init.ts` (hello shape),
-   `packages/testing/src/index.ts` (leak probe), `scripts/verify-consumer.mjs`
-   (consumer-check pattern), `docs/getting-started/first-app.md` (trim source).
+## 2. Rewire (T109, one or two commits)
 
-## 2. Build (tasks T100-T107, in order)
+- Move the questionnaire plus copy logic from `scaffolder/packages/create`
+  into `packages/cli` by extending the `init` command. No new binary name:
+  the entry point is `aimbrace init` with host plus extras selection.
+- Move the 4 templates to top-level `templates/`.
+- Move the verify script to `scripts/verify-scaffolder.mjs`; repoint it at
+  `aimbrace init` and the new template paths.
+- Move the quickstart page into `docs/`.
+- Delete `scaffolder/` entirely, including any workspace registration.
+- Keep the template dependency lines exactly as verified (upstream `cordis`
+  pin, no `@deepseek-ai/*`, no `@aimbrace/*` in generated apps).
 
-- T100: amend `.specify/memory/constitution.md` (product = scaffolder,
-  templates on raw Cordis, no wrapper runtime) with a version bump. Stop and
-  report if anything in the repo forbids this; do not code around it.
-- T101-T103: `scaffolder/packages/create` (bin `create-aimbrace`, questionnaire plus
-  flags, refuse-if-dirty) and 4 templates under `scaffolder/templates/`
-  (hono, hono-agent, fastify, fastify-agent).
-- T104-T106: `scaffolder/scripts/verify-scaffolder.mjs` (scaffold all four in
-  temp dirs, install, boot, curl 200, run template tests, fail on any
-  `@aimbrace/*` dep or a 5th template), per-template vitest suites, wire the
-  repo gate to cover `scaffolder/`.
-- T107: `scaffolder/docs/quickstart.md`, one page, zero to serving.
+## 3. Hard constraints
 
-## 3. Hard constraints (ponytail rules, no exceptions)
-
-- Templates import upstream `cordis@4.0.0-rc.10` (exact pin, same as frozen
-  `packages/core`) and host libs directly. No `@deepseek-ai/*` package
-  anywhere: when reusing tutorial material, swap its dependency lines to
-  upstream `cordis`. No new runtime package, no wrapper module, no shared
-  `@aimbrace/*` dependency in any template. The directories under
+- No new package, no new binary name, nothing outside this repo.
+- Do NOT touch runtime code (`packages/core`, `loader`, hosts, `effect`,
+  `unplugin`), `plugins/`, `examples/`, old `docs/`, `specs/000-009`, or the
+  sibling site repo. Only `packages/cli` (init extension), `templates/`,
+  `scripts/`, `docs/quickstart.md` and `specs/010-*` may change.
+- The directories under
   `../Cordis_Effect_Fastify_Hookable_Unplugin_Hono/` are study references,
   never dependencies.
-- At most 4 templates. A 5th idea goes in the ledger as rejected, not in code.
-- Copy files, no config parsing, no graph building in the CLI.
-- Do NOT touch `packages/`, `plugins/`, `examples/`, `docs/`,
-  `specs/000-roadmap/spec.md`, `specs/001-*` through `specs/009-*`, or the
-  sibling `aimbrace.github.io` repo. Only `scaffolder/`,
-  `specs/010-scaffolder-rebuild/tasks.md` (ledger checkmarks) and
-  `pnpm-workspace.yaml` may change.
-- One template per commit where separable; every commit green.
 
-## 4. Verify before each push
+## 4. Verify before pushing
 
-`verify-scaffolder.mjs` end to end plus the repo gate. Paste the tail of the
-green run in your report. If `create-aimbrace` is taken on npm, use
-`create-aimbrace-app` and record it in `tasks.md` T108.
-
-## 5. Do NOT do T108 (npm publish)
-
-Publishing needs the owner's `npm login` plus org. Finish T100-T107, push,
-and report: green evidence, the publish command ready to run, and anything
-that needs the owner.
+Verify script end to end (all 4 templates: install, boot, curl 200, template
+tests) plus the repo gate, both green. Paste the tail of the green run in the
+report. Check off T109 in `specs/010-scaffolder-rebuild/tasks.md` in the same
+commit. There is no T108 publish step: scaffolding ships with the aimbrace CLI.

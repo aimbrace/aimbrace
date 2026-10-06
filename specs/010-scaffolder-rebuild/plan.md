@@ -1,13 +1,16 @@
-# Implementation Plan: create-aimbrace scaffolder (M10)
+# Implementation Plan: aimbrace scaffolding (M10)
 
 **Branch**: `main` | **Date**: 2026-10-06 | **Spec**: [`./spec.md`](./spec.md)
 
 ## Summary
 
-Build `scaffolder/` in this repo: one CLI package (`create-aimbrace`), at most
-4 templates on raw Cordis, one verify script, one quickstart page. Old
-`packages/`, `plugins/`, `examples/`, docs and site are frozen and untouched.
-Each task below closes only with its exit evidence on `main`.
+**Distribution:** self-contained. The scaffolder is run from this repository (`node scaffolder/packages/create/bin/create-aimbrace.js`); it is not published to npm.
+
+Extend the aimbrace CLI (`packages/cli`, `init` command) with a host/extras
+questionnaire that copies one of 4 in-repo templates on raw Cordis, plus one
+verify script and one quickstart page. No new package, no new binary name,
+nothing outside this repo. Old runtime code, docs and site are frozen and
+untouched. Each task below closes only with its exit evidence on `main`.
 
 ## Technical Context
 
@@ -45,15 +48,14 @@ scaffolder under a framework constitution would repeat the original error.
 ## Architecture
 
 ```text
-scaffolder/
-  packages/create/        create-aimbrace (questionnaire, flags, file copy, refuse-if-dirty)
-  templates/
-    hono/                 base Cordis app on Hono
-    hono-agent/           plus mock model, memory, tools, agent scope
-    fastify/              base Cordis app on Fastify
-    fastify-agent/        plus the same agent extra
-  scripts/verify-scaffolder.mjs
-  docs/quickstart.md      the single page from US4
+packages/cli/src/builtins/init.ts   extended: questionnaire, flags, copy, refuse-if-dirty
+templates/
+  hono/                   base Cordis app on Hono
+  hono-agent/             plus mock model, memory, tools, agent scope
+  fastify/                base Cordis app on Fastify
+  fastify-agent/          plus the same agent extra
+scripts/verify-scaffolder.mjs
+docs/quickstart.md        the single page from US4
 ```
 
 Scaffold flow: parse flags (or ask) → resolve template dir → refuse if
@@ -67,13 +69,12 @@ it copies files. Salvage from frozen code: `hello` plugin shape (current
 ## Project Structure (new files only)
 
 ```text
-scaffolder/packages/create/src/{index.ts,questions.ts,copy.ts}
-scaffolder/packages/create/package.json   (bin: create-aimbrace)
-scaffolder/templates/{hono,hono-agent,fastify,fastify-agent}/
-scaffolder/scripts/verify-scaffolder.mjs
-scaffolder/docs/quickstart.md
+packages/cli/src/builtins/init.ts   (extended, no new binary)
+templates/{hono,hono-agent,fastify,fastify-agent}/
+scripts/verify-scaffolder.mjs
+docs/quickstart.md
 specs/010-scaffolder-rebuild/{review.md,spec.md,plan.md,tasks.md,implementation-spec-for-010.md}
 ```
 
-Nothing under `packages/`, `plugins/`, `examples/`, `docs/`, `specs/000-009`
-changes except the roadmap ledger (`specs/000-roadmap/tasks.md`, M10 entry).
+Only `packages/cli` (init extension), `templates/`, `scripts/`,
+`docs/quickstart.md` and `specs/010-*` change. Everything else frozen.

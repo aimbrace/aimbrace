@@ -64,6 +64,6 @@ NOT flagged (ponytail floor): `packages/testing` leak probe, `scripts/verify-con
 
 ## Decision (user, 2026-10-06)
 
-Rebuild as `create-aimbrace`: questionnaire plus templates on raw Cordis, zero
+Scaffold from inside aimbrace (`aimbrace init`): questionnaire plus templates on raw Cordis, zero
 `@aimbrace/*` runtime dependencies. Same repo, built alongside the old code;
 no deletion and no site changes until the scaffolder cutover proves itself.

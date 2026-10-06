@@ -1,4 +1,4 @@
-# Feature Specification: create-aimbrace scaffolder (rebuild)
+# Feature Specification: aimbrace scaffolding (rebuild)
 
 **Feature Branch**: `main` (maintainer workflow, no feature branches)
 
@@ -13,12 +13,16 @@ scaffolder shaped like create-better-t-stack) and the ponytail review in
 
 ## Summary
 
-Ship one thing: `create-aimbrace`, a scaffolder CLI. It asks a few choices
-(host, extras), copies a template, and the user gets a working Cordis app.
-Templates depend on `cordis` and host libraries directly. There are zero
-`@aimbrace/*` runtime dependencies by design: there is no runtime to publish,
-version, or keep in sync. better-t-stack is the model (questionnaire plus templates,
-no shipped runtime).
+**Distribution (decided 2026-10-06): self-contained in this repository.** No npm package is
+published for the scaffolder or any framework code. Users get it from the repository checkout,
+alongside the templates it copies. An npm publish of `create-aimbrace@0.1.0` happened by mistake
+and is being removed by the owner.
+
+Ship scaffolding inside aimbrace itself: `aimbrace init` asks a few choices
+(host, extras), copies an in-repo template, and the user gets a working Cordis
+app. No new package, no new binary name, nothing outside this repo. Templates
+depend on `cordis` and host libraries directly. better-t-stack is the model
+(questionnaire plus templates), kept inside the aimbrace CLI.
 
 ## Clarifications
 
@@ -35,7 +39,7 @@ no shipped runtime).
 
 ### User Story 1 - Scaffold and run a Hono app (Priority: P1)
 
-A developer runs `npx create-aimbrace my-app`, picks the defaults, installs,
+A developer runs `aimbrace init my-app`, picks the defaults, installs,
 and starts a serving app built from Cordis plugins with routes contributed
 through a plain registry.
 
@@ -78,17 +82,17 @@ and one agent task scope, fully deterministic with no keys and no network.
 1. **Given** the agent extra, **When** its tests run without network, **Then**
    they pass and no real vendor SDK is imported.
 
-### User Story 4 - Publish and document in one page (Priority: P3)
+### User Story 4 - Document in one page (Priority: P3)
 
-`create-aimbrace` is on npm and one quickstart page takes a user from zero to
-a serving app.
+One quickstart page takes a user from zero to a serving app using the aimbrace
+CLI from this checkout. No separate publish: scaffolding ships with aimbrace.
 
-**Independent Test**: `npm view create-aimbrace` resolves and a fresh machine
-(or container) completes the quickstart.
+**Independent Test**: a fresh machine (or container) completes the quickstart
+from this repo.
 
 **Acceptance Scenarios**:
 
-1. **Given** the npm package, **When** a user follows only the quickstart page,
+1. **Given** this checkout, **When** a user follows only the quickstart page,
    **Then** they reach a serving app in under 10 minutes.
 
 ## Edge Cases
@@ -97,12 +101,11 @@ a serving app.
 - Node below v22: fail fast with a one-line message.
 - Offline machine: Hono/Fastify templates need registry access for install;
   document it, do not vendor node_modules.
-- npm name `create-aimbrace` taken: fall back to `create-aimbrace-app`
-  (assumption, recorded in implementation-spec-for-010.md).
+- No new binary or package name is introduced anywhere in this milestone.
 
 ## Functional Requirements
 
-- **FR-001**: The CLI MUST ask for app name, host (`hono` | `fastify`) and
+- **FR-001**: `aimbrace init` MUST ask for app name, host (`hono` | `fastify`) and
   extras (`agent` on/off), and MUST accept the same answers as flags for
   non-interactive runs.
 - **FR-002**: A scaffolded `package.json` MUST contain zero `@aimbrace/*`
@@ -131,7 +134,6 @@ a serving app.
 
 ## Assumptions
 
-- npm name `create-aimbrace` is available.
-- Same repo, new top-level `scaffolder/` directory (CLI package plus
-  `templates/` plus verify script), keeping the pnpm workspace green.
+- Everything lives in this repo: `aimbrace init` extended in `packages/cli`,
+  templates under `templates/`, verify script under `scripts/`.
 - Old code, docs and site stay exactly as they are until cutover.
