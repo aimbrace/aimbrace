@@ -11,6 +11,6 @@ pnpm test
 Layout:
 
 - `src/app.mjs` composes the plugins with `inject` ordering.
-- `src/plugins/http.mjs` provides the HTTP app (__HOST__).
+- `src/plugins/http.mjs` provides the HTTP app (Hono).
 - `src/plugins/routes.mjs` adds routes to it.
 - `src/plugins/server.mjs` starts listening once the routes are ready, and closes on stop.

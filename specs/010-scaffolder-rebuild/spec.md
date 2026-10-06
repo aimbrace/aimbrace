@@ -17,7 +17,7 @@ Ship one thing: `create-aimbrace`, a scaffolder CLI. It asks a few choices
 (host, extras), copies a template, and the user gets a working Cordis app.
 Templates depend on `cordis` and host libraries directly. There are zero
 `@aimbrace/*` runtime dependencies by design: there is no runtime to publish,
-version, or keep in sync. better-t-stack is the model (prompts plus templates,
+version, or keep in sync. better-t-stack is the model (questionnaire plus templates,
 no shipped runtime).
 
 ## Clarifications
@@ -98,17 +98,22 @@ a serving app.
 - Offline machine: Hono/Fastify templates need registry access for install;
   document it, do not vendor node_modules.
 - npm name `create-aimbrace` taken: fall back to `create-aimbrace-app`
-  (assumption, recorded in the build prompt).
+  (assumption, recorded in implementation-spec-for-010.md).
 
 ## Functional Requirements
 
-- **FR-001**: The CLI MUST prompt for app name, host (`hono` | `fastify`) and
+- **FR-001**: The CLI MUST ask for app name, host (`hono` | `fastify`) and
   extras (`agent` on/off), and MUST accept the same answers as flags for
   non-interactive runs.
 - **FR-002**: A scaffolded `package.json` MUST contain zero `@aimbrace/*`
   dependencies (enforced by test).
 - **FR-003**: Templates MUST use `cordis` Context and plugins directly; no
   wrapper runtime may be introduced.
+- **FR-007**: Templates MUST depend on upstream `cordis` (exact pin
+  `cordis@4.0.0-rc.10`) and MUST NOT depend on any `@deepseek-ai/*` package
+  (no `@deepseek-ai/cordis`, `schemastery`, or `dsh-host-webserver`). Tutorial
+  material reused from `cordis-interactive-tutorial` MUST have its dependency
+  lines swapped to upstream `cordis`.
 - **FR-004**: At most 4 templates: hono, hono+agent, fastify, fastify+agent.
 - **FR-005**: The agent template MUST run offline with a deterministic mock
   and MUST NOT import a real vendor SDK.

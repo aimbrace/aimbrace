@@ -1,4 +1,4 @@
-# Claude build prompt: M10 create-aimbrace scaffolder
+# Implementation work order: M10 create-aimbrace scaffolder
 
 Paste everything below the line to Claude. It assumes a checkout of the
 `aimbrace/aimbrace` repo with the spec-kit structure intact.
@@ -24,7 +24,7 @@ Work autonomously, commit every green checkpoint to `main`, push each one.
 - T100: amend `.specify/memory/constitution.md` (product = scaffolder,
   templates on raw Cordis, no wrapper runtime) with a version bump. Stop and
   report if anything in the repo forbids this; do not code around it.
-- T101-T103: `scaffolder/packages/create` (bin `create-aimbrace`, prompts plus
+- T101-T103: `scaffolder/packages/create` (bin `create-aimbrace`, questionnaire plus
   flags, refuse-if-dirty) and 4 templates under `scaffolder/templates/`
   (hono, hono-agent, fastify, fastify-agent).
 - T104-T106: `scaffolder/scripts/verify-scaffolder.mjs` (scaffold all four in
@@ -35,9 +35,13 @@ Work autonomously, commit every green checkpoint to `main`, push each one.
 
 ## 3. Hard constraints (ponytail rules, no exceptions)
 
-- Templates import `cordis` (exact pin from the frozen `packages/core`) and
-  host libs directly. No new runtime package, no wrapper module, no shared
-  `@aimbrace/*` dependency in any template.
+- Templates import upstream `cordis@4.0.0-rc.10` (exact pin, same as frozen
+  `packages/core`) and host libs directly. No `@deepseek-ai/*` package
+  anywhere: when reusing tutorial material, swap its dependency lines to
+  upstream `cordis`. No new runtime package, no wrapper module, no shared
+  `@aimbrace/*` dependency in any template. The directories under
+  `../Cordis_Effect_Fastify_Hookable_Unplugin_Hono/` are study references,
+  never dependencies.
 - At most 4 templates. A 5th idea goes in the ledger as rejected, not in code.
 - Copy files, no config parsing, no graph building in the CLI.
 - Do NOT touch `packages/`, `plugins/`, `examples/`, `docs/`,

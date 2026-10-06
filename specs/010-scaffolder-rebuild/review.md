@@ -14,7 +14,7 @@ app, and a docs website in a sibling repo. Full gate green at review time:
 
 ## The category error
 
-Asked: a scaffolder like create-better-t-stack (thin CLI, prompts, templates,
+Asked: a scaffolder like create-better-t-stack (thin CLI, questionnaire, templates,
 zero runtime). Built: a runtime framework (own DI kernel, lifecycle, registry,
 hooks, graph, semver, error taxonomy: 7,259 lines of shipped source) with the
 scaffolder as one 76-line CLI command (`packages/cli/src/builtins/init.ts`).
@@ -64,6 +64,6 @@ NOT flagged (ponytail floor): `packages/testing` leak probe, `scripts/verify-con
 
 ## Decision (user, 2026-10-06)
 
-Rebuild as `create-aimbrace`: prompts plus templates on raw Cordis, zero
+Rebuild as `create-aimbrace`: questionnaire plus templates on raw Cordis, zero
 `@aimbrace/*` runtime dependencies. Same repo, built alongside the old code;
 no deletion and no site changes until the scaffolder cutover proves itself.

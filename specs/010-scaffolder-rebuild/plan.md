@@ -12,9 +12,13 @@ Each task below closes only with its exit evidence on `main`.
 ## Technical Context
 
 **Language/Version**: TypeScript strict, ESM, Node `>=22`
-**Dependencies**: `cordis` (exact pin, same as frozen code), `hono` plus
-`@hono/node-server` OR `fastify` per template (never both in one template),
-no `@aimbrace/*` deps anywhere, no new runtime packages
+**Dependencies**: upstream `cordis@4.0.0-rc.10` (exact pin, same as frozen
+code), `hookable@6.1.2`, `hono` plus `@hono/node-server` OR `fastify` per
+template (never both in one template), no `@aimbrace/*` deps anywhere, no
+`@deepseek-ai/*` deps anywhere, no new runtime packages.
+Reference clones (study only, never dependencies):
+`../Cordis_Effect_Fastify_Hookable_Unplugin_Hono/` (upstream cordis, effect,
+fastify, hono, hookable, unplugin checkouts)
 **Testing**: vitest for the CLI; `scripts/verify-scaffolder.mjs` scaffolds every
 template in a temp dir, installs, boots, curls the route, runs template tests
 **Target**: Node 22+ only (hosts document their own targets; no Bun/Deno gate)
@@ -42,7 +46,7 @@ scaffolder under a framework constitution would repeat the original error.
 
 ```text
 scaffolder/
-  packages/create/        create-aimbrace (prompts, flags, file copy, refuse-if-dirty)
+  packages/create/        create-aimbrace (questionnaire, flags, file copy, refuse-if-dirty)
   templates/
     hono/                 base Cordis app on Hono
     hono-agent/           plus mock model, memory, tools, agent scope
@@ -52,7 +56,7 @@ scaffolder/
   docs/quickstart.md      the single page from US4
 ```
 
-Scaffold flow: parse flags (or prompt) → resolve template dir → refuse if
+Scaffold flow: parse flags (or ask) → resolve template dir → refuse if
 target not empty → copy → write package.json with chosen name → print next
 steps. No config parsing, no graph building, no plugin registry in the CLI:
 it copies files. Salvage from frozen code: `hello` plugin shape (current
@@ -63,12 +67,12 @@ it copies files. Salvage from frozen code: `hello` plugin shape (current
 ## Project Structure (new files only)
 
 ```text
-scaffolder/packages/create/src/{index.ts,prompts.ts,copy.ts}
+scaffolder/packages/create/src/{index.ts,questions.ts,copy.ts}
 scaffolder/packages/create/package.json   (bin: create-aimbrace)
 scaffolder/templates/{hono,hono-agent,fastify,fastify-agent}/
 scaffolder/scripts/verify-scaffolder.mjs
 scaffolder/docs/quickstart.md
-specs/010-scaffolder-rebuild/{review.md,spec.md,plan.md,tasks.md,claude-prompt.md}
+specs/010-scaffolder-rebuild/{review.md,spec.md,plan.md,tasks.md,implementation-spec-for-010.md}
 ```
 
 Nothing under `packages/`, `plugins/`, `examples/`, `docs/`, `specs/000-009`
