@@ -120,6 +120,28 @@ describe('Hooks', () => {
     expect(log).toEqual(['before:tick', 'hook', 'after:tick'])
   })
 
+  it('tracks observers: they are counted, reported by observed() and cleared with clear()', async () => {
+    const hooks = new Hooks<TestHooks>()
+    expect(hooks.observed()).toBe(false)
+    const offBefore = hooks.beforeEach(() => {})
+    hooks.afterEach(() => {})
+    expect(hooks.observed()).toBe(true)
+    expect(hooks.count()).toBe(2)
+    expect(hooks.count('tick')).toBe(0)
+    offBefore()
+    offBefore()
+    expect(hooks.count()).toBe(1)
+    hooks.clear()
+    expect(hooks.observed()).toBe(false)
+    expect(hooks.count()).toBe(0)
+    const seen: string[] = []
+    hooks.beforeEach((event) => void seen.push(event.name))
+    await hooks.callHook('tick')
+    hooks.clear()
+    await hooks.callHook('tick')
+    expect(seen).toEqual(['tick'])
+  })
+
   it('infers hook argument types', () => {
     const hooks = new Hooks<TestHooks>()
     expectTypeOf(hooks.callHook<'run:end'>).parameters.toEqualTypeOf<

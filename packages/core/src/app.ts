@@ -80,6 +80,15 @@ export interface LeakProbe {
   clean: boolean
 }
 
+/** The outcome of {@link App.validate}. */
+export interface ValidationReport {
+  /** True when there are no errors. */
+  ok: boolean
+  graph: Graph
+  /** Graph problems and config problems, graph problems first. */
+  errors: AimbraceError[]
+}
+
 /** The composition root. */
 export interface App extends AsyncDisposable {
   readonly name: string
@@ -90,6 +99,11 @@ export interface App extends AsyncDisposable {
   readonly signal: AbortSignal
   /** Register plugins before `start`. Chainable. */
   use(...plugins: PluginLike[]): this
+  /**
+   * Check the graph and every plugin config without installing anything.
+   * Runs no `setup`; config schemas do run. Safe on an app that has not started.
+   */
+  validate(): Promise<ValidationReport>
   /** Validate, install in dependency order, then start. Rolls back on failure. */
   start(): Promise<void>
   /** Stop in reverse order and release everything. Safe to call more than once. */
@@ -157,22 +171,33 @@ class AppImpl implements App {
     this.#registered.push({ plugin, config })
   }
 
+  /** Build the graph and resolve every config. Collects problems instead of throwing them. */
+  async #check(): Promise<{ graph: Graph; errors: AimbraceError[]; configs: unknown[] }> {
+    const graph = buildGraph(this.#registered.map((entry) => entry.plugin.meta))
+    const errors: AimbraceError[] = [...graph.errors]
+    const configs: unknown[] = []
+    for (const entry of this.#registered) {
+      try {
+        configs.push(await resolveConfig(entry.plugin, entry.config))
+      } catch (error) {
+        if (error instanceof ConfigError || error instanceof PluginError) errors.push(error)
+        else throw error
+      }
+    }
+    return { graph, errors, configs }
+  }
+
+  async validate(): Promise<ValidationReport> {
+    const { graph, errors } = await this.#check()
+    return { ok: errors.length === 0, graph, errors }
+  }
+
   async start(): Promise<void> {
     this.#assertState(['created'], 'start() was already called')
     this.#kernel.state = 'starting'
     try {
-      const graph = buildGraph(this.#registered.map((entry) => entry.plugin.meta))
+      const { graph, errors, configs } = await this.#check()
       this.#graph = graph
-      const errors: AimbraceError[] = [...graph.errors]
-      const configs: unknown[] = []
-      for (const entry of this.#registered) {
-        try {
-          configs.push(await resolveConfig(entry.plugin, entry.config))
-        } catch (error) {
-          if (error instanceof ConfigError || error instanceof PluginError) errors.push(error)
-          else throw error
-        }
-      }
       if (errors.length === 1) throw errors[0]
       if (errors.length > 1) throw new StartupValidationError(errors)
 

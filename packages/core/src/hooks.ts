@@ -37,6 +37,8 @@ export interface HookEvent<T extends HookShape<T>> {
 export class Hooks<T extends HookShape<T>> {
   readonly #hookable = new Hookable<T>()
   readonly #counts = new Map<string, number>()
+  /** Live `beforeEach`/`afterEach` observers, so they can be cleared and counted. */
+  readonly #spies = new Set<Unhook>()
 
   /** Register `fn` for `name`. Returns the function that removes it. */
   hook<K extends HookName<T>>(name: K, fn: T[K]): Unhook {
@@ -74,21 +76,35 @@ export class Hooks<T extends HookShape<T>> {
 
   /** Observe every call before it reaches the hooks (tracing, debugging). */
   beforeEach(listener: (event: HookEvent<T>) => void): Unhook {
-    return this.#hookable.beforeEach(listener as never)
+    return this.#spy(this.#hookable.beforeEach(listener as never))
   }
 
   /** Observe every call after its hooks finished. */
   afterEach(listener: (event: HookEvent<T>) => void): Unhook {
-    return this.#hookable.afterEach(listener as never)
+    return this.#spy(this.#hookable.afterEach(listener as never))
+  }
+
+  #spy(remove: Unhook): Unhook {
+    const off: Unhook = () => {
+      if (!this.#spies.delete(off)) return
+      remove()
+    }
+    this.#spies.add(off)
+    return off
+  }
+
+  /** True while a `beforeEach` or `afterEach` observer is registered: such observers see every call, even to hooks nobody registered. */
+  observed(): boolean {
+    return this.#spies.size > 0
   }
 
   /**
-   * Number of live registrations: for one hook name, or in total.
-   * This is the leak probe.
+   * Number of live registrations: for one hook name, or in total (observers
+   * included). This is the leak probe.
    */
   count(name?: HookName<T>): number {
     if (name !== undefined) return this.#counts.get(name) ?? 0
-    let total = 0
+    let total = this.#spies.size
     for (const value of this.#counts.values()) total += value
     return total
   }
@@ -98,10 +114,11 @@ export class Hooks<T extends HookShape<T>> {
     return [...this.#counts.keys()]
   }
 
-  /** Remove every registration. */
+  /** Remove every registration and observer. */
   clear(): void {
     this.#hookable.removeAllHooks()
     this.#counts.clear()
+    for (const off of [...this.#spies]) off()
   }
 
   /** A view whose registrations are removed when `owner` ends. */

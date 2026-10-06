@@ -38,7 +38,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M7 - Testing package and CLI (`specs/007-testing-cli`)
 
-- [ ] see `specs/007-testing-cli/tasks.md`
+- [x] done, see `specs/007-testing-cli/tasks.md`
 
 ## M8 - Reference AI plugins and examples (`specs/008-ai-plugins`)
 

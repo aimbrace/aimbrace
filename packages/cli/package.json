@@ -1,0 +1,45 @@
+{
+  "name": "@aimbrace/cli",
+  "version": "0.1.0",
+  "description": "The AIMBRACE command line: graph, check, run, plugins, init, and commands contributed by your own plugins.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "aimbrace": "./bin/aimbrace.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aimbrace/core": "workspace:*",
+    "@aimbrace/loader": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aimbrace/aimbrace.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://aimbrace.github.io",
+  "keywords": [
+    "aimbrace",
+    "cli"
+  ]
+}

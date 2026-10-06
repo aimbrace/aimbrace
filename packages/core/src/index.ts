@@ -6,6 +6,7 @@ export type {
   LeakProbe,
   PluginSnapshot,
   ScopeSnapshot,
+  ValidationReport,
 } from './app'
 export { createApp } from './app'
 export type {

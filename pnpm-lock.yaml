@@ -182,6 +182,15 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.19.1)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.28.2))
 
+  packages/cli:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../core
+      '@aimbrace/loader':
+        specifier: workspace:*
+        version: link:../loader
+
   packages/core:
     dependencies:
       cordis:
@@ -240,6 +249,12 @@ importers:
         version: 1.5.0(typescript@6.0.3)
 
   packages/loader:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/testing:
     dependencies:
       '@aimbrace/core':
         specifier: workspace:*

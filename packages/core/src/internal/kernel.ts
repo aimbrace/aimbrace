@@ -75,7 +75,7 @@ export class Kernel {
 
   /** Fire a hook without waiting. Errors go to the reporter. For observers on synchronous paths. */
   emit<K extends HookName<AppHooks>>(name: K, ...args: Parameters<AppHooks[K]>): void {
-    if (this.hooks.count(name) === 0) return
+    if (this.hooks.count(name) === 0 && !this.hooks.observed()) return
     this.hooks.callHook(name, ...args).catch((error: unknown) => this.report(error, `hook ${name}`))
   }
 

@@ -612,3 +612,30 @@ describe('detached context methods', () => {
     expect(app.probe().clean).toBe(true)
   })
 })
+
+describe('observers see fire-and-forget hooks nobody registered', () => {
+  it('lets beforeEach record service, scope and registry events', async () => {
+    const names: string[] = []
+    const app = createApp({
+      plugins: [
+        definePlugin({
+          id: 'p',
+          provides: [Db],
+          setup(ctx) {
+            ctx.provide(Db, { id: 'x' })
+            ctx.registry(Tools).add({ name: 't', run: () => 't' })
+          },
+        }),
+      ],
+    })
+    app.hooks.beforeEach((event) => void names.push(event.name))
+    await app.start()
+    await (await app.scope('s')).dispose()
+    await waitFor(() => names.includes('scope:close'))
+    expect(names).toContain('service:provide')
+    expect(names).toContain('registry:change')
+    expect(names).toContain('scope:open')
+    await app.stop()
+    expect(app.probe().hooks).toBe(0)
+  })
+})

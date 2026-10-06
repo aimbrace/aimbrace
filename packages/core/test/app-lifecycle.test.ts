@@ -355,3 +355,40 @@ describe('stop and rollback', () => {
     await stopping
   })
 })
+
+describe('validate', () => {
+  it('reports graph and config problems without running any setup', async () => {
+    const log: string[] = []
+    const http = definePlugin({
+      id: 'http',
+      config: objectSchema({ port: 'number' }),
+      setup: () => void log.push('http setup'),
+    })
+    const needy = definePlugin({
+      id: 'needy',
+      requires: [Settings],
+      setup: () => void log.push('needy setup'),
+    })
+    const app = createApp({ plugins: [needy, http({})] })
+    const report = await app.validate()
+    expect(report.ok).toBe(false)
+    expect(report.errors).toHaveLength(2)
+    expect(report.errors[0]).toBeInstanceOf(MissingDependencyError)
+    expect(report.errors[1]).toBeInstanceOf(ConfigError)
+    expect(report.graph.ok).toBe(false)
+    expect(log).toEqual([])
+    expect(app.state).toBe('created')
+    expect(app.probe().clean).toBe(true)
+  })
+
+  it('reports ok for a valid app and leaves it startable', async () => {
+    const { settings, memory } = setup()
+    const app = createApp({ plugins: [memory, settings] })
+    const report = await app.validate()
+    expect(report).toMatchObject({ ok: true, errors: [] })
+    expect(report.graph.order).toEqual(['settings', 'memory'])
+    await app.start()
+    expect(app.state).toBe('running')
+    await app.stop()
+  })
+})
