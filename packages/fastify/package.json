@@ -1,0 +1,45 @@
+{
+  "name": "@aimbrace/fastify",
+  "version": "0.1.0",
+  "description": "Fastify host for AIMBRACE: serves the neutral HTTP contract.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aimbrace/core": "workspace:*",
+    "@aimbrace/http": "workspace:*"
+  },
+  "peerDependencies": {
+    "fastify": "^5.0.0"
+  },
+  "devDependencies": {
+    "fastify": "5.12.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aimbrace/aimbrace.git",
+    "directory": "packages/fastify"
+  },
+  "homepage": "https://aimbrace.github.io",
+  "keywords": [
+    "aimbrace",
+    "fastify",
+    "http"
+  ]
+}

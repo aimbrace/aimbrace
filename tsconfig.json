@@ -4,7 +4,10 @@
     "noEmit": true,
     "paths": {
       "@aimbrace/core": ["./packages/core/src/index.ts"],
-      "@aimbrace/loader": ["./packages/loader/src/index.ts"]
+      "@aimbrace/loader": ["./packages/loader/src/index.ts"],
+      "@aimbrace/http": ["./packages/http/src/index.ts"],
+      "@aimbrace/hono": ["./packages/hono/src/index.ts"],
+      "@aimbrace/fastify": ["./packages/fastify/src/index.ts"]
     }
   },
   "include": [

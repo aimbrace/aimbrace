@@ -552,3 +552,23 @@ describe('inspect and probe', () => {
     await two.stop()
   })
 })
+
+describe('ctx.report', () => {
+  it('sends errors that cannot be thrown to the app error reporter', async () => {
+    const reported: string[] = []
+    const noisy = definePlugin({
+      id: 'noisy',
+      setup(ctx) {
+        ctx.report(new Error('background failure'), 'noisy-task')
+        ctx.report(new Error('default where'))
+      },
+    })
+    const app = createApp({
+      plugins: [noisy],
+      onError: (error, where) => void reported.push(`${where}: ${(error as Error).message}`),
+    })
+    await app.start()
+    expect(reported).toEqual(['noisy-task: background failure', 'plugin:noisy: default where'])
+    await app.stop()
+  })
+})

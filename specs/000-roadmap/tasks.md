@@ -30,7 +30,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M5 - HTTP contract plus Hono and Fastify hosts (`specs/005-http-hosts`)
 
-- [ ] see `specs/005-http-hosts/tasks.md`
+- [x] done, see `specs/005-http-hosts/tasks.md`
 
 ## M6 - Effect bridge and Unplugin build plugin (`specs/006-effect-unplugin`)
 

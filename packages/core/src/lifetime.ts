@@ -56,6 +56,10 @@ export abstract class Lifetime implements BaseContext {
     return this.kernel.registries.view(token, this.stack)
   }
 
+  report(error: unknown, where: string = this.name): void {
+    this.kernel.report(error, where)
+  }
+
   scope(name: string, options?: ScopeOptions): Promise<Scope> {
     return ScopeImpl.open(this, name, options)
   }

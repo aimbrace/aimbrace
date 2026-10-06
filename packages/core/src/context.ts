@@ -13,6 +13,11 @@ export interface BaseContext extends Owner {
   readonly signal: AbortSignal
   /** Hook registrations made here are removed when this context ends. */
   readonly hooks: ScopedHooks<AppHooks>
+  /**
+   * Report an error that cannot be thrown to a caller (a background task, a
+   * failing observer). It goes to the app's `onError`.
+   */
+  report(error: unknown, where?: string): void
   /** A view of a registry. Entries added here are removed when this context ends. */
   registry<T>(token: RegistryToken<T>): Registry<T>
   /** Open a child scope. Disposing the parent disposes the child first. */
