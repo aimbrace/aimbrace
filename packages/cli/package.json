@@ -1,10 +1,9 @@
 {
-  "name": "@aimbrace/cli",
+  "name": "aimbrace",
   "version": "0.1.0",
-  "description": "The AIMBRACE command line: graph, check, run, plugins, init, and commands contributed by your own plugins.",
+  "description": "Scaffold Cordis apps: aimbrace init.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -24,11 +23,8 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "@aimbrace/core": "workspace:*",
-    "@aimbrace/loader": "workspace:*"
+    "clean": "rm -rf dist",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -40,7 +36,11 @@
   },
   "homepage": "https://aimbrace.github.io",
   "keywords": [
-    "aimbrace",
-    "cli"
-  ]
+    "cordis",
+    "scaffold"
+  ],
+  "private": true,
+  "devDependencies": {
+    "cordis": "4.0.0-rc.10"
+  }
 }

@@ -1,29 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "paths": {
-      "@aimbrace/core": ["./packages/core/src/index.ts"],
-      "@aimbrace/loader": ["./packages/loader/src/index.ts"],
-      "@aimbrace/http": ["./packages/http/src/index.ts"],
-      "@aimbrace/hono": ["./packages/hono/src/index.ts"],
-      "@aimbrace/fastify": ["./packages/fastify/src/index.ts"],
-      "@aimbrace/effect": ["./packages/effect/src/index.ts"],
-      "@aimbrace/testing": ["./packages/testing/src/index.ts"],
-      "@aimbrace/cli": ["./packages/cli/src/index.ts"],
-      "@aimbrace/plugin-model": ["./plugins/model/src/index.ts"],
-      "@aimbrace/plugin-memory": ["./plugins/memory/src/index.ts"],
-      "@aimbrace/plugin-tools": ["./plugins/tools/src/index.ts"],
-      "@aimbrace/plugin-agent": ["./plugins/agent/src/index.ts"],
-      "@aimbrace/unplugin": ["./packages/unplugin/src/index.ts"]
-    }
+    "noEmit": true
   },
-  "include": [
-    "packages/*/src",
-    "packages/*/test",
-    "plugins/*/src",
-    "plugins/*/test",
-    "examples/*/src",
-    "examples/*/test"
-  ]
+  "include": ["packages/*/src", "packages/*/test", "docs/test"]
 }

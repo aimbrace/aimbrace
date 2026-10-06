@@ -1,10 +1,11 @@
-export { runCli, VERSION } from './cli'
+export { HELP, runCli, VERSION } from './cli'
+export { type InitOptions, init, parseInitOptions, UsageError } from './init'
+export type { Io } from './io'
 export {
-  type Command,
-  type CommandContext,
-  Commands,
-  commandsPlugin,
-  type OptionSpec,
-  RESERVED_COMMANDS,
-} from './commands'
-export type { Io, Writer } from './io'
+  assertTargetFree,
+  copyTemplate,
+  isValidName,
+  nameFrom,
+  TargetNotEmptyError,
+} from './project'
+export { TEMPLATES, type Template, templateDir, templateFor, templatesRoot } from './templates'

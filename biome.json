@@ -6,16 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "**",
-      "!**/dist",
-      "!**/node_modules",
-      "!.specify",
-      "!.claude",
-      "!docs/aimbrace_spec.md",
-      "!packages/cli/templates",
-      "!**/*.md"
-    ]
+    "includes": ["**", "!**/dist", "!**/node_modules", "!.specify", "!.claude", "!**/*.md"]
   },
   "formatter": {
     "enabled": true,
@@ -50,17 +41,5 @@
         "organizeImports": "on"
       }
     }
-  },
-  "overrides": [
-    {
-      "includes": ["packages/effect/src/**"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noExplicitAny": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }

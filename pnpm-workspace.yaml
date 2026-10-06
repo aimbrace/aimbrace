@@ -1,7 +1,4 @@
 packages:
   - packages/*
-  - plugins/*
-  - examples/*
 allowBuilds:
   esbuild: true
-

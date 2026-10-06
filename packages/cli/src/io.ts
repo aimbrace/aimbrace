@@ -1,31 +1,39 @@
-/** Anything text can be written to. */
-export interface Writer {
-  write(text: string): unknown
-}
+import { spawn } from 'node:child_process'
+import { createInterface } from 'node:readline/promises'
 
-/** Everything the CLI touches outside itself, injectable for tests. */
+/** Everything the CLI touches outside the filesystem. Tests pass their own. */
 export interface Io {
-  stdout: Writer
-  stderr: Writer
+  stdout: { write(text: string): unknown }
+  stderr: { write(text: string): unknown }
   cwd: string
-  /** Aborts when the user asks the process to stop (SIGINT, SIGTERM). Only `run` waits on it. */
-  signal?: AbortSignal | undefined
+  /** Ask one question; `undefined` when there is no terminal to ask on. */
+  ask: ((question: string) => Promise<string>) | undefined
+  /** Install dependencies in a directory; resolves to the exit code. */
+  install(directory: string): Promise<number>
 }
 
-/** Process-backed IO. The signal is wired lazily by `run` through {@link processSignal}. */
-export function defaultIo(): Io {
-  return { stdout: process.stdout, stderr: process.stderr, cwd: process.cwd() }
-}
-
-/** An AbortSignal that aborts on the first SIGINT or SIGTERM. Listeners are removed when it fires. */
-export function processSignal(): AbortSignal {
-  const controller = new AbortController()
-  const abort = () => {
-    process.off('SIGINT', abort)
-    process.off('SIGTERM', abort)
-    controller.abort()
+/** The real terminal and `pnpm install`. */
+export function processIo(): Io {
+  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
+  return {
+    stdout: process.stdout,
+    stderr: process.stderr,
+    cwd: process.cwd(),
+    ask: interactive
+      ? async (question) => {
+          const rl = createInterface({ input: process.stdin, output: process.stdout })
+          try {
+            return await rl.question(question)
+          } finally {
+            rl.close()
+          }
+        }
+      : undefined,
+    install: (directory) =>
+      new Promise((done) => {
+        const child = spawn('pnpm', ['install'], { cwd: directory, stdio: 'inherit' })
+        child.on('error', () => done(1))
+        child.on('exit', (code) => done(code ?? 1))
+      }),
   }
-  process.once('SIGINT', abort)
-  process.once('SIGTERM', abort)
-  return controller.signal
 }

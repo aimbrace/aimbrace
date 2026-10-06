@@ -2,24 +2,19 @@
   "name": "aimbrace-monorepo",
   "private": true,
   "type": "module",
-  "description": "AIMBRACE - a TypeScript application composition runtime built on Cordis.",
+  "description": "AIMBRACE - scaffold apps built on Cordis. Cordis is the framework.",
   "packageManager": "pnpm@12.4.2",
   "engines": {
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "pnpm -r --workspace-concurrency=1 run build",
+    "build": "pnpm -r run build",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "check": "pnpm run lint && pnpm run build && pnpm run verify:packages && pnpm run verify:consumer && pnpm run verify:scaffolder && pnpm run typecheck && pnpm run test && pnpm run test:examples",
-    "graph": "node scripts/print-graph.mjs",
-    "verify:packages": "node scripts/verify-packages.mjs",
-    "test:examples": "vitest run --config vitest.examples.config.ts",
-    "verify:consumer": "node scripts/verify-consumer.mjs",
-    "verify:scaffolder": "node scripts/verify-scaffolder.mjs"
+    "verify:scaffolder": "node scripts/verify-scaffolder.mjs",
+    "check": "pnpm run lint && pnpm run build && pnpm run typecheck && pnpm run test && pnpm run verify:scaffolder"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

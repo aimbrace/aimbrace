@@ -1,266 +1,141 @@
-import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
-import { Commands, commandsPlugin, RESERVED_COMMANDS, runCli, VERSION } from '../src'
+import {
+  type Io,
+  nameFrom,
+  parseInitOptions,
+  runCli,
+  TEMPLATES,
+  templatesRoot,
+  UsageError,
+  VERSION,
+} from '../src/index'
 
-const fixtures = fileURLToPath(new URL('./fixtures', import.meta.url))
-const app = join(fixtures, 'app')
-const scratch = mkdtempSync(join(tmpdir(), 'aimbrace-cli-'))
+const scratch = mkdtempSync(join(tmpdir(), 'aimbrace-cli-test-'))
 afterAll(() => rmSync(scratch, { recursive: true, force: true }))
 
-function capture(options: { signal?: AbortSignal; cwd?: string } = {}) {
-  let out = ''
-  let err = ''
-  return {
-    io: {
-      stdout: {
-        write: (text: string) => {
-          out += text
-        },
-      },
-      stderr: {
-        write: (text: string) => {
-          err += text
-        },
-      },
-      cwd: options.cwd ?? scratch,
-      ...(options.signal ? { signal: options.signal } : {}),
+/** A test Io: captures output, answers prompts from a list, and records install calls. */
+function fakeIo(options: { answers?: string[]; installCode?: number } = {}) {
+  const out: string[] = []
+  const err: string[] = []
+  const installed: string[] = []
+  const answers = options.answers ? [...options.answers] : undefined
+  const io: Io = {
+    stdout: { write: (text: string) => out.push(text) },
+    stderr: { write: (text: string) => err.push(text) },
+    cwd: scratch,
+    ask: answers ? async () => answers.shift() ?? '' : undefined,
+    install: async (directory) => {
+      installed.push(directory)
+      return options.installCode ?? 0
     },
-    out: () => out,
-    err: () => err,
   }
+  return { io, out: () => out.join(''), err: () => err.join(''), installed }
 }
 
-async function cli(args: string[], options: { signal?: AbortSignal; cwd?: string } = {}) {
-  const output = capture(options)
-  const code = await runCli(args, output.io)
-  return { code, out: output.out(), err: output.err() }
-}
+const manifest = (dir: string) => JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
 
-describe('help and version', () => {
-  it('prints help with exit 0 when asked and exit 2 when no command is given', async () => {
-    const asked = await cli(['--help'])
-    expect(asked.code).toBe(0)
-    expect(asked.out).toContain('Usage: aimbrace')
-    expect(asked.out).toContain('graph [--format')
-    expect((await cli(['help'])).code).toBe(0)
-    const bare = await cli([])
-    expect(bare.code).toBe(2)
-    expect(bare.out).toContain('Commands:')
+describe('templates', () => {
+  it('are exactly app and agent', () => {
+    expect(readdirSync(templatesRoot()).sort()).toEqual([...TEMPLATES].sort())
   })
 
-  it('prints the version', async () => {
-    expect(VERSION).toMatch(/^\d+\.\d+\.\d+/)
-    for (const flag of [['--version'], ['-v'], ['version']]) {
-      const result = await cli(flag)
-      expect(result.out).toBe(`${VERSION}\n`)
-    }
-  })
-
-  it('reports usage errors with exit 2', async () => {
-    expect((await cli(['--config'])).code).toBe(2)
-    const unknownFormat = await cli(['graph', '--format', 'nope', '--cwd', app])
-    expect(unknownFormat.code).toBe(2)
-    expect(unknownFormat.err).toContain('Unknown format "nope"')
-    const unknownOption = await cli(['graph', '--wat', '--cwd', app])
-    expect(unknownOption.code).toBe(2)
+  it.each(TEMPLATES)('%s depends on cordis only', (template) => {
+    const deps = manifest(join(templatesRoot(), template)).dependencies
+    expect(Object.keys(deps)).toEqual(['cordis'])
   })
 })
 
-describe('graph', () => {
-  it.each([
-    ['text', /Plugin graph: 2 plugins, order greeter -> fixture-commands/],
-    ['mermaid', /^flowchart TD/],
-    ['dot', /^digraph aimbrace/],
-    ['json', /"order": \[/],
-  ])('prints the %s format', async (format, pattern) => {
-    const result = await cli(['graph', '--format', format, '--cwd', app])
-    expect(result.code).toBe(0)
-    expect(result.out).toMatch(pattern)
+describe('command line', () => {
+  it('prints help and version', async () => {
+    const help = fakeIo()
+    expect(await runCli(['--help'], help.io)).toBe(0)
+    expect(help.out()).toContain('aimbrace init [dir]')
+    const version = fakeIo()
+    expect(await runCli(['--version'], version.io)).toBe(0)
+    expect(version.out()).toBe(`${VERSION}\n`)
   })
 
-  it('defaults to text, accepts -c and --config=, and finds the config upwards', async () => {
-    expect((await cli(['graph', '--cwd', app])).out).toContain('Plugin graph')
-    expect((await cli(['graph', '-c', join(app, 'aimbrace.config.mjs')])).code).toBe(0)
-    expect((await cli(['graph', `--config=${join(app, 'aimbrace.config.mjs')}`])).code).toBe(0)
-    expect((await cli(['graph', '--cwd', join(app, 'plugins')])).code).toBe(0)
+  it('exits 2 with help on no command or an unknown one', async () => {
+    expect(await runCli([], fakeIo().io)).toBe(2)
+    const unknown = fakeIo()
+    expect(await runCli(['graph'], unknown.io)).toBe(2)
+    expect(unknown.err()).toContain('unknown command "graph"')
   })
 
-  it('prints an invalid graph and exits 1 with the problems on stderr', async () => {
-    const result = await cli(['graph', '--cwd', join(fixtures, 'invalid')])
-    expect(result.code).toBe(1)
-    expect(result.out).toContain('Plugin graph')
-    expect(result.err).toContain('requires service "ghost"')
-  })
-
-  it('explains a missing config', async () => {
-    const empty = mkdtempSync(join(scratch, 'empty-'))
-    const result = await cli(['graph', '--config', join(empty, 'none.json')])
-    expect(result.code).toBe(1)
-    expect(result.err).toContain('error:')
-  })
-})
-
-describe('check', () => {
-  it('passes a valid project', async () => {
-    const result = await cli(['check', '--cwd', app])
-    expect(result).toMatchObject({ code: 0, out: 'OK: 2 plugins (greeter -> fixture-commands)\n' })
-  })
-
-  it('fails on a graph problem', async () => {
-    const result = await cli(['check', '--cwd', join(fixtures, 'invalid')])
-    expect(result.code).toBe(1)
-    expect(result.err).toContain('requires service "ghost"')
-    expect(result.err).toContain('1 problem found.')
-  })
-
-  it('reports config problems and never runs setup', async () => {
-    const result = await cli(['check', '--cwd', join(fixtures, 'badconfig')])
-    expect(result.code).toBe(1)
-    expect(result.err).toContain('expected a number (at port)')
-    expect(result.err).not.toContain('setup must not run')
-  })
-})
-
-describe('run', () => {
-  it('starts, lists plugins, and stops with --once', async () => {
-    const result = await cli(['run', '--once', '--cwd', app])
-    expect(result.code).toBe(0)
-    expect(result.out).toContain('Started "cli-fixture" with 2 plugins')
-    expect(result.out).toContain('  greeter running')
-    expect(result.out).toContain('Stopped')
-  })
-
-  it('prints the full snapshot with --inspect', async () => {
-    const result = await cli(['run', '--once', '--inspect', '--cwd', app])
-    expect(result.out).toContain('"state": "running"')
-  })
-
-  it('waits for the signal, then stops', async () => {
-    const controller = new AbortController()
-    const running = cli(['run', '--cwd', app], { signal: controller.signal })
-    await new Promise((resolve) => setTimeout(resolve, 100))
-    controller.abort()
-    const result = await running
-    expect(result.code).toBe(0)
-    expect(result.out.trimEnd().endsWith('Stopped')).toBe(true)
-  })
-
-  it('fails with the error chain when the app cannot start', async () => {
-    const result = await cli(['run', '--once', '--cwd', join(fixtures, 'failing')])
-    expect(result.code).toBe(1)
-    expect(result.err).toContain(
-      'error: Plugin "breaks" failed during install: cannot connect [E_PLUGIN]',
-    )
-    expect(result.err).toContain('caused by: cannot connect')
-    expect(result.err).not.toContain('at ')
-    const debug = await cli(['run', '--once', '--debug', '--cwd', join(fixtures, 'failing')])
-    expect(debug.err).toContain('at ')
-  })
-})
-
-describe('plugin commands', () => {
-  it('lists them', async () => {
-    const result = await cli(['commands', '--cwd', app])
-    expect(result.code).toBe(0)
-    expect(result.out).toContain('greet <name> [--loud]  Greet someone')
-    expect(result.out).toContain('fail')
-  })
-
-  it('runs one inside a scope that can read app services, passing arguments and options', async () => {
-    expect(await cli(['greet', 'ann', '--cwd', app])).toMatchObject({
-      code: 0,
-      out: 'Hello, ann!\n',
+  it('parses init flags and rejects bad ones', () => {
+    expect(parseInitOptions(['shop', '--agent', '--name', 'my-shop', '-y'])).toEqual({
+      directory: 'shop',
+      name: 'my-shop',
+      agent: true,
+      install: undefined,
+      yes: true,
     })
-    expect(await cli(['greet', 'ann', '--loud', '--cwd', app])).toMatchObject({
-      code: 0,
-      out: 'HELLO, ANN!\n',
-    })
-    expect(await cli(['--cwd', app, 'greet', '-l', 'bo'])).toMatchObject({ out: 'HELLO, BO!\n' })
+    expect(parseInitOptions(['--no-agent']).agent).toBe(false)
+    expect(() => parseInitOptions(['--agent', '--no-agent'])).toThrow(/not both/)
+    expect(() => parseInitOptions(['a', 'b'])).toThrow(UsageError)
+    expect(() => parseInitOptions(['--host', 'hono'])).toThrow(UsageError)
   })
 
-  it('uses the command exit code and reports a crash', async () => {
-    expect((await cli(['fail', '--cwd', app])).code).toBe(3)
-    const crash = await cli(['crash', '--cwd', app])
-    expect(crash.code).toBe(1)
-    expect(crash.err).toContain('command exploded')
-    expect((await cli(['greet', '--cwd', app])).code).toBe(2)
-  })
-
-  it('rejects unknown commands and unknown command options with helpful output', async () => {
-    const unknown = await cli(['nope', '--cwd', app])
-    expect(unknown.code).toBe(2)
-    expect(unknown.err).toContain('unknown command "nope". Plugin commands: greet, fail, crash.')
-    expect((await cli(['greet', 'x', '--wat', '--cwd', app])).code).toBe(2)
-  })
-
-  it('refuses plugin commands that reuse a built-in name or an invalid name', () => {
-    for (const name of RESERVED_COMMANDS) {
-      expect(() => commandsPlugin('x', [{ name, run: () => {} }])).toThrow(/built-in command/)
-    }
-    expect(() => commandsPlugin('x', [{ name: 'Bad Name', run: () => {} }])).toThrow(
-      /must be lower case/,
-    )
-    expect(Commands.name).toBe('cli.commands')
+  it('derives a valid name from a directory', () => {
+    expect(nameFrom('/tmp/My Cool_App')).toBe('my-cool-app')
+    expect(nameFrom('/tmp/123')).toBe('my-app')
   })
 })
 
-describe('plugins and init', () => {
-  it('lists installed plugin packages', async () => {
-    const project = join(scratch, 'with-plugins')
-    mkdirSync(join(project, 'node_modules', 'my-plugin'), { recursive: true })
-    writeFileSync(
-      join(project, 'package.json'),
-      JSON.stringify({ name: 'p', dependencies: { 'my-plugin': '1.0.0' } }),
-    )
-    writeFileSync(
-      join(project, 'node_modules', 'my-plugin', 'package.json'),
-      JSON.stringify({
-        name: 'my-plugin',
-        version: '1.2.3',
-        description: 'Does things',
-        aimbrace: { plugin: './x.js' },
-      }),
-    )
-    const result = await cli(['plugins', '--cwd', project])
-    expect(result.out).toContain('my-plugin  1.2.3')
-    expect(result.out).toContain('Does things')
-    const none = await cli(['plugins', '--cwd', mkdtempSync(join(scratch, 'none-'))])
-    expect(none.out).toContain('No installed plugins found')
+describe('init', () => {
+  it('copies the app template with the name filled in', async () => {
+    const session = fakeIo()
+    expect(await runCli(['init', 'plain', '-y'], session.io)).toBe(0)
+    const dir = join(scratch, 'plain')
+    expect(manifest(dir).name).toBe('plain')
+    expect(readFileSync(join(dir, 'src/plugins/routes.mjs'), 'utf8')).toContain("app: 'plain'")
+    expect(existsSync(join(dir, 'src/plugins/agent.mjs'))).toBe(false)
+    expect(session.out()).toContain('created plain (app)')
+    expect(session.out()).toContain('cd plain\n  pnpm install\n  pnpm dev')
+    expect(session.installed).toEqual([])
   })
 
-  it('scaffolds a project and refuses to overwrite it', async () => {
-    const project = join(scratch, 'My New App')
-    const first = await cli(['init', project, '--yes'])
-    expect(first.code).toBe(0)
-    expect(first.out).toContain('created my-new-app (hono)')
-    expect(existsSync(join(project, 'src', 'app.mjs'))).toBe(true)
-    expect(JSON.parse(readFileSync(join(project, 'package.json'), 'utf8')).name).toBe('my-new-app')
-    const second = await cli(['init', project, '--yes'])
-    expect(second.code).toBe(1)
-    expect(second.err).toContain('refusing to write')
-    expect((await cli(['init', 'a', 'b'])).code).toBe(2)
+  it('copies the agent template when asked on the terminal', async () => {
+    const session = fakeIo({ answers: ['', 'y', 'n'] })
+    expect(await runCli(['init', 'asked'], session.io)).toBe(0)
+    expect(existsSync(join(scratch, 'asked/src/plugins/agent.mjs'))).toBe(true)
+    expect(session.out()).toContain('created asked (agent)')
   })
-})
 
-describe('the built bin', () => {
-  const bin = fileURLToPath(new URL('../bin/aimbrace.js', import.meta.url))
-  const built = existsSync(fileURLToPath(new URL('../dist/index.js', import.meta.url)))
+  it('refuses a non-empty directory and changes nothing', async () => {
+    const dir = join(scratch, 'full')
+    mkdirSync(dir)
+    writeFileSync(join(dir, 'notes.md'), 'mine')
+    const session = fakeIo()
+    expect(await runCli(['init', 'full', '-y'], session.io)).toBe(1)
+    expect(session.err()).toContain('refusing to write')
+    expect(readdirSync(dir)).toEqual(['notes.md'])
+  })
 
-  it.skipIf(!built)('runs as a real process and sets the exit code', () => {
-    const graph = execFileSync(process.execPath, [bin, 'graph', '--cwd', app], { encoding: 'utf8' })
-    expect(graph).toContain('Plugin graph: 2 plugins')
-    const failed = spawnSync(process.execPath, [bin, 'check', '--cwd', join(fixtures, 'invalid')], {
-      encoding: 'utf8',
-    })
-    expect(failed.status).toBe(1)
-    expect(failed.stderr).toContain('requires service "ghost"')
-    const custom = execFileSync(process.execPath, [bin, 'greet', 'zed', '--cwd', app], {
-      encoding: 'utf8',
-    })
-    expect(custom).toBe('Hello, zed!\n')
+  it('rejects an invalid name before writing', async () => {
+    const session = fakeIo()
+    expect(await runCli(['init', 'bad', '--name', 'Bad Name', '-y'], session.io)).toBe(2)
+    expect(existsSync(join(scratch, 'bad'))).toBe(false)
+  })
+
+  it('installs when asked and reports a failed install', async () => {
+    const ok = fakeIo()
+    expect(await runCli(['init', 'installed', '-y', '--install'], ok.io)).toBe(0)
+    expect(ok.installed).toEqual([join(scratch, 'installed')])
+    expect(ok.out()).not.toContain('pnpm install')
+    const failing = fakeIo({ installCode: 1 })
+    expect(await runCli(['init', 'install-fails', '-y', '--install'], failing.io)).toBe(1)
+    expect(failing.err()).toContain('pnpm install failed')
   })
 })
