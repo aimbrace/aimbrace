@@ -159,11 +159,13 @@ export class ScopeImpl extends Lifetime implements Scope {
       const onAbort = () => {
         scope.dispose().catch((error: unknown) => kernel.report(error, `scope ${name}`))
       }
-      if (external.aborted) onAbort()
-      else {
-        external.addEventListener('abort', onAbort, { once: true })
-        scope.own(() => external.removeEventListener('abort', onAbort))
+      if (external.aborted) {
+        // The signal fired while the scope was opening: do not hand out a scope that is already ending.
+        await scope.dispose()
+        external.throwIfAborted()
       }
+      external.addEventListener('abort', onAbort, { once: true })
+      scope.own(() => external.removeEventListener('abort', onAbort))
     }
     return scope
   }

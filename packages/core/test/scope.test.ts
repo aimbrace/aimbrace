@@ -246,3 +246,26 @@ describe('scopes', () => {
     expect(app.probe().clean).toBe(true)
   })
 })
+
+describe('scopes opened with an external signal', () => {
+  it('rejects, and leaves nothing behind, when the signal fires while the scope is opening', async () => {
+    const app = await running()
+    const controller = new AbortController()
+    const opening = app.scope('racing', { signal: controller.signal })
+    controller.abort()
+    await expect(opening).rejects.toBeDefined()
+    expect(app.probe().scopes).toBe(0)
+    await app.stop()
+    expect(app.probe().clean).toBe(true)
+  })
+
+  it('removes its abort listener from the external signal when the scope is disposed', async () => {
+    const app = await running()
+    const controller = new AbortController()
+    const scope = await app.scope('linked', { signal: controller.signal })
+    await scope.dispose()
+    controller.abort()
+    expect(app.probe().scopes).toBe(0)
+    await app.stop()
+  })
+})

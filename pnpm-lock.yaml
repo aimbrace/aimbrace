@@ -182,6 +182,63 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(@types/node@24.19.1)(vite@8.3.2(@types/node@24.19.1)(esbuild@0.28.2))
 
+  examples/agent-cli:
+    dependencies:
+      '@aimbrace/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@aimbrace/loader':
+        specifier: workspace:*
+        version: link:../../packages/loader
+      '@aimbrace/plugin-agent':
+        specifier: workspace:*
+        version: link:../../plugins/agent
+      '@aimbrace/plugin-memory':
+        specifier: workspace:*
+        version: link:../../plugins/memory
+      '@aimbrace/plugin-model':
+        specifier: workspace:*
+        version: link:../../plugins/model
+      '@aimbrace/plugin-tools':
+        specifier: workspace:*
+        version: link:../../plugins/tools
+
+  examples/http-agent:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@aimbrace/fastify':
+        specifier: workspace:*
+        version: link:../../packages/fastify
+      '@aimbrace/hono':
+        specifier: workspace:*
+        version: link:../../packages/hono
+      '@aimbrace/http':
+        specifier: workspace:*
+        version: link:../../packages/http
+      '@aimbrace/plugin-agent':
+        specifier: workspace:*
+        version: link:../../plugins/agent
+      '@aimbrace/plugin-memory':
+        specifier: workspace:*
+        version: link:../../plugins/memory
+      '@aimbrace/plugin-model':
+        specifier: workspace:*
+        version: link:../../plugins/model
+      '@aimbrace/plugin-tools':
+        specifier: workspace:*
+        version: link:../../plugins/tools
+      fastify:
+        specifier: 5.12.5
+        version: 5.12.5
+      hono:
+        specifier: 4.13.13
+        version: 4.13.13
+
   packages/cli:
     dependencies:
       '@aimbrace/core':
@@ -281,6 +338,51 @@ importers:
       rollup:
         specifier: 4.64.0
         version: 4.64.0
+
+  plugins/agent:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@aimbrace/plugin-memory':
+        specifier: workspace:*
+        version: link:../memory
+      '@aimbrace/plugin-model':
+        specifier: workspace:*
+        version: link:../model
+      '@aimbrace/plugin-tools':
+        specifier: workspace:*
+        version: link:../tools
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@6.0.3)
+
+  plugins/memory:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@6.0.3)
+
+  plugins/model:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@6.0.3)
+
+  plugins/tools:
+    dependencies:
+      '@aimbrace/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@6.0.3)
 
 packages:
 

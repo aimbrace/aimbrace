@@ -42,7 +42,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M8 - Reference AI plugins and examples (`specs/008-ai-plugins`)
 
-- [ ] see `specs/008-ai-plugins/tasks.md`
+- [x] done, see `specs/008-ai-plugins/tasks.md`
 
 ## M9 - Documentation (`specs/009-docs`)
 

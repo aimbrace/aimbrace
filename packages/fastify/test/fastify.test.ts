@@ -55,3 +55,11 @@ describe('fastifyHost specifics', () => {
     await first.stop()
   })
 })
+
+describe('fastifyHost defaults', () => {
+  it('accepts being used with no config at all', async () => {
+    const app = createApp({ plugins: [http, fastifyHost] })
+    const report = await app.validate()
+    expect(report.ok).toBe(true)
+  })
+})

@@ -1,8 +1,7 @@
 import * as v from 'valibot'
 import type { HttpAddress } from './tokens'
 
-/** Options every HTTP host accepts. Hosts validate them with this Standard Schema. */
-export const HostConfig = v.object({
+const HostShape = v.object({
   /** Port to listen on. `0` picks a free port. */
   port: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(65535)), 3000),
   hostname: v.optional(v.string(), '127.0.0.1'),
@@ -12,11 +11,17 @@ export const HostConfig = v.object({
   shutdownGraceMs: v.optional(v.pipe(v.number(), v.minValue(0)), 1000),
 })
 
+/**
+ * Options every HTTP host accepts. A Standard Schema that also accepts no
+ * config at all (`undefined` becomes the defaults), so `honoHost()` works.
+ */
+export const HostConfig = v.optional(HostShape, v.getDefaults(HostShape))
+
 /** The validated host options. */
-export type HostOptions = v.InferOutput<typeof HostConfig>
+export type HostOptions = v.InferOutput<typeof HostShape>
 
 /** The options a caller may pass (everything optional). */
-export type HostInput = v.InferInput<typeof HostConfig>
+export type HostInput = v.InferInput<typeof HostShape>
 
 /**
  * The holder behind the {@link HttpAddress} service. Hosts provide `view`

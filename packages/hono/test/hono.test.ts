@@ -46,3 +46,11 @@ describe('honoHost specifics', () => {
     await first.stop()
   })
 })
+
+describe('honoHost defaults', () => {
+  it('accepts being used with no config at all', async () => {
+    const app = createApp({ plugins: [http, honoHost] })
+    const report = await app.validate()
+    expect(report.ok).toBe(true)
+  })
+})

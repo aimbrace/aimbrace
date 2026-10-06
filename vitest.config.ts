@@ -23,11 +23,8 @@ function workspaceAliases(): Record<string, string> {
 export default defineConfig({
   resolve: { alias: workspaceAliases() },
   test: {
-    include: [
-      'packages/*/test/**/*.test.ts',
-      'plugins/*/test/**/*.test.ts',
-      'examples/*/test/**/*.test.ts',
-    ],
+    // Examples are integration tests of the built packages: see vitest.examples.config.ts.
+    include: ['packages/*/test/**/*.test.ts', 'plugins/*/test/**/*.test.ts'],
     environment: 'node',
     passWithNoTests: true,
     testTimeout: 10_000,

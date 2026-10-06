@@ -11,6 +11,10 @@
       "@aimbrace/effect": ["./packages/effect/src/index.ts"],
       "@aimbrace/testing": ["./packages/testing/src/index.ts"],
       "@aimbrace/cli": ["./packages/cli/src/index.ts"],
+      "@aimbrace/plugin-model": ["./plugins/model/src/index.ts"],
+      "@aimbrace/plugin-memory": ["./plugins/memory/src/index.ts"],
+      "@aimbrace/plugin-tools": ["./plugins/tools/src/index.ts"],
+      "@aimbrace/plugin-agent": ["./plugins/agent/src/index.ts"],
       "@aimbrace/unplugin": ["./packages/unplugin/src/index.ts"]
     }
   },

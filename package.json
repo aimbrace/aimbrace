@@ -14,9 +14,10 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "check": "pnpm run lint && pnpm run build && pnpm run verify:packages && pnpm run typecheck && pnpm run test",
+    "check": "pnpm run lint && pnpm run build && pnpm run verify:packages && pnpm run typecheck && pnpm run test && pnpm run test:examples",
     "graph": "node scripts/print-graph.mjs",
-    "verify:packages": "node scripts/verify-packages.mjs"
+    "verify:packages": "node scripts/verify-packages.mjs",
+    "test:examples": "vitest run --config vitest.examples.config.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

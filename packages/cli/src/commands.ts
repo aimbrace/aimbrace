@@ -30,6 +30,7 @@ export interface Command {
   /** Shown by `aimbrace commands`, for example `migrate [--dry-run]`. */
   readonly usage?: string | undefined
   readonly options?: Readonly<Record<string, OptionSpec>> | undefined
+  // biome-ignore lint/suspicious/noConfusingVoidType: `void` lets a command with no return statement type-check
   run(ctx: CommandContext): number | undefined | void | Promise<number | undefined | void>
 }
 
