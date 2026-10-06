@@ -3,7 +3,8 @@
   "compilerOptions": {
     "noEmit": true,
     "paths": {
-      "@aimbrace/core": ["./packages/core/src/index.ts"]
+      "@aimbrace/core": ["./packages/core/src/index.ts"],
+      "@aimbrace/loader": ["./packages/loader/src/index.ts"]
     }
   },
   "include": [

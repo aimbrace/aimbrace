@@ -1,0 +1,8 @@
+{
+  "name": "plain",
+  "plugins": [
+    "./plugins/hello.mjs",
+    { "use": "./plugins/configured.mjs", "config": { "port": 8081 } },
+    { "use": "./plugins/factory.mjs", "config": { "label": "x" } }
+  ]
+}

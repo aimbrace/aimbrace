@@ -26,7 +26,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M4 - Config and loader (`specs/004-config-loader`)
 
-- [ ] see `specs/004-config-loader/tasks.md`
+- [x] done (the brief's `config` package is folded into `@aimbrace/loader`), see `specs/004-config-loader/tasks.md`
 
 ## M5 - HTTP contract plus Hono and Fastify hosts (`specs/005-http-hosts`)
 
