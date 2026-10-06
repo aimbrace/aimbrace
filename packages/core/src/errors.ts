@@ -60,3 +60,129 @@ export class DuplicateRegistryEntryError extends AimbraceError {
     )
   }
 }
+
+/** One validation problem of a plugin config. */
+export interface ConfigIssue {
+  message: string
+  /** Dotted path to the offending value; empty for the root. */
+  path: string
+}
+
+/** A plugin config failed its schema. */
+export class ConfigError extends AimbraceError {
+  readonly subject: string
+  readonly issues: readonly ConfigIssue[]
+
+  constructor(subject: string, issues: readonly ConfigIssue[]) {
+    super(
+      'E_CONFIG',
+      `Invalid config for ${subject}:\n${issues
+        .map((issue) => `  - ${issue.message}${issue.path ? ` (at ${issue.path})` : ''}`)
+        .join('\n')}`,
+    )
+    this.subject = subject
+    this.issues = issues
+  }
+}
+
+/** Two plugins in one graph share an id. */
+export class DuplicatePluginError extends AimbraceError {
+  readonly id: string
+
+  constructor(id: string) {
+    super('E_DUPLICATE_PLUGIN', `Plugin id "${id}" is registered more than once.`)
+    this.id = id
+  }
+}
+
+/** Two plugins provide the same service. */
+export class DuplicateProviderError extends AimbraceError {
+  readonly service: string
+  readonly providers: readonly string[]
+
+  constructor(service: string, providers: readonly string[]) {
+    super(
+      'E_DUPLICATE_PROVIDER',
+      `Service "${service}" is provided by more than one plugin: ${providers.join(', ')}.`,
+    )
+    this.service = service
+    this.providers = providers
+  }
+}
+
+/** A required service has no provider. */
+export class MissingDependencyError extends AimbraceError {
+  readonly plugin: string
+  readonly service: string
+  readonly suggestions: readonly string[]
+
+  constructor(plugin: string, service: string, suggestions: readonly string[] = []) {
+    super(
+      'E_MISSING_DEPENDENCY',
+      `Plugin "${plugin}" requires service "${service}", but no plugin provides it.${
+        suggestions.length > 0
+          ? ` Did you mean ${suggestions.map((s) => `"${s}"`).join(' or ')}?`
+          : ''
+      }`,
+    )
+    this.plugin = plugin
+    this.service = service
+    this.suggestions = suggestions
+  }
+}
+
+/** The required dependencies form a cycle. */
+export class DependencyCycleError extends AimbraceError {
+  /** The cycle as a path whose first and last entries are equal. */
+  readonly cycle: readonly string[]
+
+  constructor(cycle: readonly string[]) {
+    super('E_DEPENDENCY_CYCLE', `Dependency cycle: ${cycle.join(' -> ')}.`)
+    this.cycle = cycle
+  }
+}
+
+/** A peer plugin is absent, or its version does not match. */
+export class PeerError extends AimbraceError {
+  readonly plugin: string
+  readonly peer: string
+  readonly range: string
+  readonly found: string | undefined
+
+  constructor(
+    plugin: string,
+    peer: string,
+    range: string,
+    found: string | undefined,
+    invalid = false,
+  ) {
+    super(
+      invalid ? 'E_INVALID_RANGE' : found === undefined ? 'E_MISSING_PEER' : 'E_PEER_VERSION',
+      invalid
+        ? `Plugin "${plugin}" declares an invalid version range "${range}" for peer "${peer}".`
+        : found === undefined
+          ? `Plugin "${plugin}" needs peer plugin "${peer}" (${range}), which is not registered.`
+          : `Plugin "${plugin}" needs peer "${peer}" ${range}, but version ${found} is registered.`,
+    )
+    this.plugin = plugin
+    this.peer = peer
+    this.range = range
+    this.found = found
+  }
+}
+
+/** The graph has several problems at once. */
+export class GraphValidationError extends AimbraceError {
+  readonly errors: readonly AimbraceError[]
+
+  constructor(errors: readonly AimbraceError[]) {
+    super(
+      'E_GRAPH_INVALID',
+      `The plugin graph is invalid (${errors.length} problems):\n${errors
+        .map((error) => `  - ${error.message}`)
+        .join('\n')}`,
+      { cause: errors[0] },
+    )
+    this.errors = errors
+  }
+}

@@ -8,17 +8,17 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 - [x] T000 Initialise spec-kit (`specify init --here --integration claude`)
 - [x] T001 Constitution `.specify/memory/constitution.md`
 - [x] T002 Roadmap spec, plan, research, tasks (`specs/000-roadmap`)
-- [ ] T003 Workspace tooling: pnpm workspace, tsconfig base, Biome, Vitest, CI workflow
-- [ ] T004 Root README with project summary and status table
-- [ ] T005 First checkpoint pushed to `aimbrace/aimbrace`
+- [x] T003 Workspace tooling: pnpm workspace, tsconfig base, Biome, Vitest, CI workflow
+- [x] T004 Root README with project summary and status table
+- [x] T005 First checkpoint pushed to `aimbrace/aimbrace`
 
 ## M1 - Core primitives (`specs/001-core-primitives`)
 
-- [ ] see `specs/001-core-primitives/tasks.md`
+- [x] done, see `specs/001-core-primitives/tasks.md`
 
 ## M2 - Plugin model and dependency graph (`specs/002-plugin-graph`)
 
-- [ ] see `specs/002-plugin-graph/tasks.md`
+- [x] done, see `specs/002-plugin-graph/tasks.md`
 
 ## M3 - App, Context, Scope, lifecycle (`specs/003-app-lifecycle`)
 
