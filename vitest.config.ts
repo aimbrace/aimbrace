@@ -24,7 +24,11 @@ export default defineConfig({
   resolve: { alias: workspaceAliases() },
   test: {
     // Examples are integration tests of the built packages: see vitest.examples.config.ts.
-    include: ['packages/*/test/**/*.test.ts', 'plugins/*/test/**/*.test.ts'],
+    include: [
+      'packages/*/test/**/*.test.ts',
+      'plugins/*/test/**/*.test.ts',
+      'docs/test/**/*.test.ts',
+    ],
     environment: 'node',
     passWithNoTests: true,
     testTimeout: 10_000,

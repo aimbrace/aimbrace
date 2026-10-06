@@ -46,7 +46,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M9 - Documentation (`specs/009-docs`)
 
-- [ ] see `specs/009-docs/tasks.md`
+- [x] done, see `specs/009-docs/tasks.md`
 
 ## M10 - Website and release hygiene (`specs/010-website`)
 
