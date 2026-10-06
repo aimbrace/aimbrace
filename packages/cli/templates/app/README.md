@@ -1,6 +1,6 @@
 # __APP_NAME__
 
-A Cordis app scaffolded by `aimbrace init`. It depends on `cordis` only. Everything is a Cordis plugin: see `src/plugins/`.
+A Cordis app scaffolded by `aimbrace init`. It depends on `@deepseek-ai/cordis` only. Everything is a Cordis plugin: see `src/plugins/`.
 
 ```sh
 pnpm install

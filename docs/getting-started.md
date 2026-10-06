@@ -31,7 +31,7 @@ Stop the app with Ctrl+C. Every plugin is disposed and the server closes.
 | `aimbrace init my-app --no-agent -y` | `app`: a router, two routes and a `node:http` server, as Cordis plugins |
 | `aimbrace init my-app --agent -y` | `agent`: the same app plus an offline agent behind `POST /ask` |
 
-Both depend on `cordis` and nothing else. `init` never writes into a directory that is not empty.
+Both depend on `@deepseek-ai/cordis` and nothing else. `init` never writes into a directory that is not empty.
 
 Try the agent:
 

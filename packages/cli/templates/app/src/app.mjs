@@ -1,4 +1,4 @@
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 import { http } from './plugins/http.mjs'
 import { routes } from './plugins/routes.mjs'
 import { server } from './plugins/server.mjs'

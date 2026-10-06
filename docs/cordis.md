@@ -10,7 +10,7 @@ service; another plugin asks for it by name in `inject`.
 
 ```js
 import assert from 'node:assert/strict'
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 
 const root = new Context()
 
@@ -38,7 +38,7 @@ order you call `plugin` in does not matter.
 
 ```js
 import assert from 'node:assert/strict'
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 
 const root = new Context()
 const started = []
@@ -61,7 +61,7 @@ plugin is disposed. A disposer returned from `apply` works the same way.
 
 ```js
 import assert from 'node:assert/strict'
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 
 const root = new Context()
 const routes = new Set()
@@ -85,7 +85,7 @@ assert.deepEqual([...routes], [])
 
 ```js
 import assert from 'node:assert/strict'
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 
 const root = new Context()
 const seen = []
@@ -111,7 +111,7 @@ child.
 
 ```js
 import assert from 'node:assert/strict'
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 
 const root = new Context()
 let result
@@ -139,7 +139,7 @@ server when it is disposed.
 ```js
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 
 const root = new Context()
 

@@ -13,7 +13,7 @@ Cordis is the framework. AIMBRACE gives you a working start.</p>
 
 Cordis already has what an app framework needs: plugins, services, `inject` dependencies, lifecycle, effects that clean
 up after themselves, events, and isolation. AIMBRACE adds no runtime on top. `aimbrace init` copies a small Cordis
-project that depends on `cordis` only, and every line of it is yours.
+project that depends on `@deepseek-ai/cordis` only, and every line of it is yours.
 
 ```sh
 pnpm install && pnpm run build

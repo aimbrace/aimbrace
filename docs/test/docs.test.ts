@@ -16,7 +16,7 @@ const markdown = [
 
 /** `cordis` as installed for the templates, so the snippets run against the version the templates pin. */
 const cordis = pathToFileURL(
-  createRequire(join(root, 'packages', 'cli', 'package.json')).resolve('cordis'),
+  createRequire(join(root, 'packages', 'cli', 'package.json')).resolve('@deepseek-ai/cordis'),
 ).href
 
 describe('docs', () => {
@@ -61,7 +61,7 @@ describe('docs: Cordis examples run', () => {
     'example %i',
     async (index, code) => {
       const file = join(scratch, `example-${index}.mjs`)
-      writeFileSync(file, code.replaceAll("from 'cordis'", `from '${cordis}'`))
+      writeFileSync(file, code.replaceAll("from '@deepseek-ai/cordis'", `from '${cordis}'`))
       await import(pathToFileURL(file).href)
     },
   )

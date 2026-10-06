@@ -4,7 +4,7 @@
  *
  *  1. build the CLI and run `aimbrace init` for real into an empty temp directory
  *  2. a second `init` into the same directory must refuse and change nothing
- *  3. the generated package.json must depend on `cordis` and nothing else
+ *  3. the generated package.json must depend on `@deepseek-ai/cordis` and nothing else
  *  4. install, run the project's own tests, boot it with `pnpm start`, request its routes, stop it with SIGINT
  *
  * Needs the network for the install step. Fails on the first problem.
@@ -92,9 +92,11 @@ try {
 
     const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
     const deps = Object.keys(manifest.dependencies ?? {})
-    if (deps.join(',') !== 'cordis')
-      fail(`${template}: runtime dependencies are ${deps.join(', ')}, expected cordis only`)
-    log(`${template}: scaffolded, refusal ok, depends on cordis only`)
+    if (deps.join(',') !== '@deepseek-ai/cordis')
+      fail(
+        `${template}: runtime dependencies are ${deps.join(', ')}, expected @deepseek-ai/cordis only`,
+      )
+    log(`${template}: scaffolded, refusal ok, depends on @deepseek-ai/cordis only`)
 
     capture('pnpm', ['install'], { cwd: dir })
     capture('pnpm', ['test'], { cwd: dir })

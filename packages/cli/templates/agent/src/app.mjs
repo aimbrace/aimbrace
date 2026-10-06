@@ -1,4 +1,4 @@
-import { Context } from 'cordis'
+import { Context } from '@deepseek-ai/cordis'
 import { agent } from './plugins/agent.mjs'
 import { http } from './plugins/http.mjs'
 import { memory } from './plugins/memory.mjs'

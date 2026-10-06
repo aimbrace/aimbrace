@@ -6,10 +6,10 @@ A task closes when its evidence is on `main`.
 
 - [x] T120 Duplicate-library sweep: none in ACRYL; none in AIMBRACE (`hookable` only inside `tsdown`); stale copies
   dropped from `node_modules` by a clean reinstall.
-- [ ] T121 Templates on `@deepseek-ai/cordis` 4.0.4.
-- [ ] T122 Docs examples run against `@deepseek-ai/cordis`.
-- [ ] T123 Verify script and CLI test enforce `@deepseek-ai/cordis` as the only runtime dependency.
-- [ ] T124 Constitution 3.1.0. Gate green.
+- [x] T121 Templates on `@deepseek-ai/cordis` 4.0.4. Evidence: both templates pass from a fresh install.
+- [x] T122 Docs examples run against `@deepseek-ai/cordis`. Evidence: six examples pass.
+- [x] T123 Verify script and CLI test enforce `@deepseek-ai/cordis` as the only runtime dependency. Evidence: verify `OK`.
+- [x] T124 Constitution 3.1.0. Gate green. Evidence: gate exit 0.
 
 ## Phase 2
 

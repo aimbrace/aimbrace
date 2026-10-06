@@ -50,9 +50,9 @@ describe('templates', () => {
     expect(readdirSync(templatesRoot()).sort()).toEqual([...TEMPLATES].sort())
   })
 
-  it.each(TEMPLATES)('%s depends on cordis only', (template) => {
+  it.each(TEMPLATES)('%s depends on @deepseek-ai/cordis only', (template) => {
     const deps = manifest(join(templatesRoot(), template)).dependencies
-    expect(Object.keys(deps)).toEqual(['cordis'])
+    expect(Object.keys(deps)).toEqual(['@deepseek-ai/cordis'])
   })
 })
 

@@ -3,6 +3,8 @@
 This constitution governs every spec, plan, task and package in this repository. If another document conflicts with
 it, this file wins until it is deliberately amended (with a version bump below).
 
+**Version 3.1.0 (amended 2026-10-07).** 3.1.0 names the Cordis package: the one ACRYL runs on (research R2).
+
 **Version 3.0.0 (amended 2026-10-06).** Version 1 defined AIMBRACE as a composition runtime on Cordis plus five
 libraries; version 2 as a scaffolder with Hono and Fastify templates. Both re-did what Cordis already provides and were
 removed. The reason is in `specs/000-roadmap/research.md` (R1).
@@ -20,9 +22,9 @@ capability.
 The shipped artifact is the `aimbrace` command: `init` copies a template and fills in the project name. There is no
 runtime package for apps to import.
 
-### III. Generated projects depend on `cordis` only
+### III. Generated projects depend on `@deepseek-ai/cordis` only
 
-A generated `package.json` has `cordis` as its single runtime dependency. HTTP uses `node:http`. A template that needs
+A generated `package.json` has `@deepseek-ai/cordis`, pinned exactly, as its single runtime dependency. HTTP uses `node:http`. A template that needs
 anything else needs a written reason in its spec. The verify script enforces this.
 
 ### IV. Two templates
@@ -64,4 +66,4 @@ Ledgers say what is done, blocked and deferred. Docs describe only what the test
 Amendments need a changed version line, a research note in `specs/000-roadmap/research.md`, and updates to any plan
 they invalidate.
 
-**Version**: 3.0.0 | **Ratified**: 2026-10-06 | **Last Amended**: 2026-10-06
+**Version**: 3.1.0 | **Ratified**: 2026-10-06 | **Last Amended**: 2026-10-07
