@@ -26,7 +26,7 @@ import {
   spawn,
 } from './internal/cordis'
 import type { Installer, Kernel } from './internal/kernel'
-import { Lifetime } from './lifetime'
+import { bindMethods, Lifetime } from './lifetime'
 import { type PluginLike, type PluginRecord, resolvePluginLike } from './plugin'
 import type { ServiceToken } from './service'
 import { validateStandard } from './standard-schema'
@@ -62,6 +62,7 @@ export class PluginContextImpl extends Lifetime {
     this.#requires = new Set(runtime.record.meta.requires)
     this.#optional = new Set(runtime.record.meta.optional)
     this.#provides = new Set(runtime.record.meta.provides)
+    bindMethods(this, ['get', 'maybe', 'provide'])
   }
 
   get<T>(token: ServiceToken<T>): T {

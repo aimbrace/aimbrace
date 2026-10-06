@@ -62,13 +62,32 @@ describe('resolvePlugin', () => {
     ).rejects.toThrow(/already configured/)
   })
 
-  it('resolves a bare package name from the base directory', async () => {
-    const plugin = await resolvePlugin('@aimbrace/core', join(fixtures, '..', '..'), 'test').catch(
-      (error: unknown) => error,
-    )
-    // @aimbrace/core exports no plugin: the failure must be the helpful one, proving it was found and imported.
-    expect(plugin).toBeInstanceOf(LoaderError)
-    expect((plugin as LoaderError).message).toContain('does not export a plugin')
+  it('resolves bare package names, including ESM-only packages without a require condition', async () => {
+    const project = join(scratch, 'bare-project')
+    const fake = (id: string) =>
+      `export default Object.assign(() => ({ kind: 'plugin-instance' }), { kind: 'plugin', id: '${id}' })\n`
+    const install = (name: string, manifest: object, file = 'index.mjs') => {
+      const dir = join(project, 'node_modules', name)
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({ name, type: 'module', ...manifest }),
+      )
+      writeFileSync(join(dir, file), fake(name))
+    }
+    install('classic-plugin', { main: './index.mjs' })
+    install('esm-only-plugin', { exports: { '.': { import: './index.mjs' } } })
+    install('@scope/scoped-plugin', { exports: { '.': { default: './index.mjs' } } })
+    mkdirSync(join(project, 'src'), { recursive: true })
+    for (const name of ['classic-plugin', 'esm-only-plugin', '@scope/scoped-plugin']) {
+      const plugin = await resolvePlugin(name, join(project, 'src'), 'test')
+      expect((plugin as { id: string }).id).toBe(name)
+    }
+    const missing = (await resolvePlugin('absent-package', project, 'cfg').catch(
+      (e: unknown) => e,
+    )) as LoaderError
+    expect(missing).toBeInstanceOf(LoaderError)
+    expect(missing.message).toContain('Cannot find plugin "absent-package"')
   })
 
   it('explains a missing module', async () => {

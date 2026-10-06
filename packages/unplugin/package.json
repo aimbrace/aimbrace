@@ -1,0 +1,84 @@
+{
+  "name": "@aimbrace/unplugin",
+  "version": "0.1.0",
+  "description": "Validate the AIMBRACE plugin graph at build time and import it as virtual modules, for every bundler Unplugin supports.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.js"
+    },
+    "./rollup": {
+      "types": "./dist/rollup.d.ts",
+      "default": "./dist/rollup.js"
+    },
+    "./rolldown": {
+      "types": "./dist/rolldown.d.ts",
+      "default": "./dist/rolldown.js"
+    },
+    "./esbuild": {
+      "types": "./dist/esbuild.d.ts",
+      "default": "./dist/esbuild.js"
+    },
+    "./webpack": {
+      "types": "./dist/webpack.d.ts",
+      "default": "./dist/webpack.js"
+    },
+    "./rspack": {
+      "types": "./dist/rspack.d.ts",
+      "default": "./dist/rspack.js"
+    },
+    "./farm": {
+      "types": "./dist/farm.d.ts",
+      "default": "./dist/farm.js"
+    },
+    "./bun": {
+      "types": "./dist/bun.d.ts",
+      "default": "./dist/bun.js"
+    },
+    "./virtual": {
+      "types": "./virtual.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "virtual.d.ts"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aimbrace/core": "workspace:*",
+    "@aimbrace/loader": "workspace:*",
+    "unplugin": "3.4.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "rollup": "4.64.0",
+    "rolldown": "1.2.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aimbrace/aimbrace.git",
+    "directory": "packages/unplugin"
+  },
+  "homepage": "https://aimbrace.github.io",
+  "keywords": [
+    "aimbrace",
+    "unplugin",
+    "vite",
+    "rollup",
+    "esbuild",
+    "webpack"
+  ]
+}

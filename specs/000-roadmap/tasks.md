@@ -34,7 +34,7 @@ there. A milestone is only checked when its exit evidence (see `plan.md`) exists
 
 ## M6 - Effect bridge and Unplugin build plugin (`specs/006-effect-unplugin`)
 
-- [ ] see `specs/006-effect-unplugin/tasks.md`
+- [x] done, see `specs/006-effect-unplugin/tasks.md`
 
 ## M7 - Testing package and CLI (`specs/007-testing-cli`)
 

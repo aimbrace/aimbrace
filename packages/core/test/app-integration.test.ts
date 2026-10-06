@@ -572,3 +572,43 @@ describe('ctx.report', () => {
     await app.stop()
   })
 })
+
+describe('detached context methods', () => {
+  it('lets plugin contexts, scopes and registries be destructured', async () => {
+    const Greeting = service<string>('greeting')
+    let greeted = ''
+    const plugin = definePlugin({
+      id: 'detached',
+      requires: [Greeting],
+      optional: [],
+      provides: [],
+      setup(ctx) {
+        const { get, registry, report, own } = ctx
+        greeted = get(Greeting)
+        registry(Tools).add({ name: 't', run: () => 't' })
+        report(new Error('detached report'), 'detached')
+        own(() => void 0)
+      },
+    })
+    const provider = definePlugin({
+      id: 'greeter',
+      provides: [Greeting],
+      setup: (ctx) => void ctx.provide(Greeting, 'hello'),
+    })
+    const reported: string[] = []
+    const app = createApp({
+      plugins: [provider, plugin],
+      onError: (_error, where) => void reported.push(where),
+    })
+    await app.start()
+    expect(greeted).toBe('hello')
+    expect(reported).toEqual(['detached'])
+    const { provide, get, dispose, run } = await app.scope('task')
+    provide(Greeting, 'scoped')
+    expect(get(Greeting)).toBe('scoped')
+    await run(async () => void 0)
+    await dispose()
+    await app.stop()
+    expect(app.probe().clean).toBe(true)
+  })
+})

@@ -16,6 +16,18 @@ import type { Registry, RegistryToken } from './registry'
 import type { ServiceToken } from './service'
 
 /**
+ * Make methods safe to detach (`const { get } = ctx`, `createRuntime(ctx.get)`).
+ * Contexts rely on private fields, so an unbound call would otherwise fail.
+ */
+export function bindMethods(target: object, names: readonly string[]): void {
+  const record = target as Record<string, unknown>
+  for (const name of names) {
+    const method = record[name]
+    if (typeof method === 'function') record[name] = method.bind(target)
+  }
+}
+
+/**
  * A thing with a lifetime: the app, a plugin activation, or a scope. It owns a
  * LIFO stack of resources, an abort signal, hook registrations and registry
  * views. Ending it aborts the signal and releases everything newest first.
@@ -37,6 +49,7 @@ export abstract class Lifetime implements BaseContext {
     this.cctx = cctx
     this.parent = parent
     this.hooks = kernel.hooks.scoped(this.stack)
+    bindMethods(this, ['own', 'registry', 'report', 'scope', 'install', 'abort', 'end'])
   }
 
   get signal(): AbortSignal {
@@ -119,6 +132,7 @@ export class ScopeImpl extends Lifetime implements Scope {
     super(kernel, name, cctx, parent)
     this.id = id
     this.#fiber = fiber
+    bindMethods(this, ['get', 'maybe', 'provide', 'run', 'dispose'])
   }
 
   static async open(

@@ -14,8 +14,9 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "check": "pnpm run lint && pnpm run build && pnpm run typecheck && pnpm run test",
-    "graph": "node scripts/print-graph.mjs"
+    "check": "pnpm run lint && pnpm run build && pnpm run verify:packages && pnpm run typecheck && pnpm run test",
+    "graph": "node scripts/print-graph.mjs",
+    "verify:packages": "node scripts/verify-packages.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
