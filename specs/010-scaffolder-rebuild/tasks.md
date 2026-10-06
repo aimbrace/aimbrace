@@ -3,10 +3,10 @@
 Spec: [`./spec.md`](./spec.md). Plan: [`./plan.md`](./plan.md).
 A task closes only when its exit evidence exists on `main`.
 
-Owner correction 2026-10-06: no separate `create-aimbrace` package. Scaffolding
-ships inside the aimbrace CLI (`aimbrace init`). T101-T105 and T107 below were
-built as a standalone package first; T109 rewires that content into aimbrace
-and deletes the standalone package. Nothing is published separately (T108 dropped).
+Owner correction 2026-10-06: everything stays in this repository. Scaffolding
+ships inside the aimbrace CLI (`aimbrace init`). No new repository, no new
+package, no new binary name, no npm publish. T101-T105 and T107 content is
+reused by T109 inside aimbrace.
 
 ## T100 - Constitution amendment
 
@@ -20,7 +20,7 @@ and deletes the standalone package. Nothing is published separately (T108 droppe
 
 - [x] Name/host/extras questionnaire plus matching flags, refuse-if-target-dirty,
   file copy with substitution, next-steps output.
-- Evidence: 12 tests (built under `scaffolder/packages/create`, moved in T109).
+- Evidence: 12 tests (now `packages/cli/test/init-templates.test.ts`).
 - Exit: covered by T109.
 
 ## T102 - Hono templates (base + agent)
@@ -41,7 +41,7 @@ and deletes the standalone package. Nothing is published separately (T108 droppe
 - [x] Verify script: scaffolds all 4 templates in temp dirs, installs, boots,
   curls the route, runs template tests, scans for `@aimbrace/*` deps (any hit
   fails the build), enforces template count cap.
-- Evidence: passes end to end (moved to `scripts/verify-scaffolder.mjs` in T109).
+- Evidence: `scripts/verify-scaffolder.mjs` (repointed at `aimbrace init` in T109).
 - Exit: script passes end to end on this machine.
 
 ## T105 - Template tests
@@ -61,10 +61,14 @@ and deletes the standalone package. Nothing is published separately (T108 droppe
 - Evidence: page content (moved into `docs/` in T109).
 - Exit: completed run plus time note in the ledger (redone after rewire).
 
-## T108 - npm publish (dropped)
+## T108 - mistaken npm publish (unpublish pending owner)
 
-- Dropped 2026-10-06: no separate package exists to publish. Scaffolding ships
-  with the aimbrace CLI whenever it is released.
+- What happened 2026-10-06: `create-aimbrace@0.1.0` was published to npm under
+  a stale spec line. That package is withdrawn: owner runs `npm unpublish
+  create-aimbrace@0.1.0` (within 72h of publish), falling back to `npm
+  deprecate` if the window closes. No publish step exists in this milestone
+  after that; scaffolding ships with the aimbrace CLI.
+- [ ] owner confirms the name is gone from the registry.
 
 ## T109 - Rewire into aimbrace (the actual deliverable)
 

@@ -14,11 +14,12 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "check": "pnpm run lint && pnpm run build && pnpm run verify:packages && pnpm run verify:consumer && pnpm run typecheck && pnpm run test && pnpm run test:examples",
+    "check": "pnpm run lint && pnpm run build && pnpm run verify:packages && pnpm run verify:consumer && pnpm run verify:scaffolder && pnpm run typecheck && pnpm run test && pnpm run test:examples",
     "graph": "node scripts/print-graph.mjs",
     "verify:packages": "node scripts/verify-packages.mjs",
     "test:examples": "vitest run --config vitest.examples.config.ts",
-    "verify:consumer": "node scripts/verify-consumer.mjs"
+    "verify:consumer": "node scripts/verify-consumer.mjs",
+    "verify:scaffolder": "node scripts/verify-scaffolder.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

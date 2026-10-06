@@ -4,7 +4,7 @@
 
 ## Summary
 
-**Distribution:** self-contained. The scaffolder is run from this repository (`node scaffolder/packages/create/bin/create-aimbrace.js`); it is not published to npm.
+**Distribution:** self-contained. The scaffolder is the aimbrace CLI run from this repository checkout (`node packages/cli/bin/aimbrace.js init`); nothing is published to npm.
 
 Extend the aimbrace CLI (`packages/cli`, `init` command) with a host/extras
 questionnaire that copies one of 4 in-repo templates on raw Cordis, plus one

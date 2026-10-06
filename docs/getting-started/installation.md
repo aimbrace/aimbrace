@@ -51,15 +51,14 @@ npx aimbrace ask "calc: 2 + 3 * 4" --trace
 ## A first project
 
 ```sh
-npx aimbrace init my-app
+npx aimbrace init my-app          # pick a host (hono or fastify) and optionally the agent
 cd my-app
 pnpm install
-npx aimbrace check
-npx aimbrace run
+pnpm dev
 ```
 
-`aimbrace init` writes an `aimbrace.config.mjs`, a first plugin and a `package.json`. It never overwrites a file.
-See [the CLI guide](../guides/cli.md).
+`init` copies a Cordis template into an empty directory. It never overwrites files.
+See [Scaffold a Cordis app](scaffold.md).
 
 ## Pinned dependencies
 

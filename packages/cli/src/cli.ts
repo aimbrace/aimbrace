@@ -22,7 +22,7 @@ Commands:
   run [--once] [--inspect]                 Start the app; stop on SIGINT or SIGTERM
   plugins                                  List installed plugin packages
   commands                                 List commands contributed by your plugins
-  init [dir]                               Scaffold a config and a first plugin
+  init [dir] [--host hono|fastify] [--agent|--no-agent] [--name n] [-y]   Scaffold a Cordis app from a template
   help                                     Show this help
   <name> [args]                            Run a command contributed by a plugin
 

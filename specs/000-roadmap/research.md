@@ -77,7 +77,7 @@ in the reactivation tests). AIMBRACE awaits every service removal before a fiber
 
 ## R9. Pivot from a composition runtime to a scaffolder (constitution 2.0.0)
 
-**Decision**: the product is `create-aimbrace`, a scaffolder with a fixed set of templates on raw Cordis. The
+**Decision**: scaffolding ships inside the aimbrace CLI (`aimbrace init`) with a fixed set of templates on raw Cordis. No new repository, no new package, no new binary name. The
 runtime packages (`@aimbrace/*`) stay in the repository, frozen, and are not imported by any new work.
 
 **Why**: an independent review (`specs/010-scaffolder-rebuild/review.md`) found that the runtime was about

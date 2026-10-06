@@ -2,10 +2,10 @@
 
 ## Situation
 
-T100-T105 and T107 are done but were built as a standalone `scaffolder/`
-package (`create-aimbrace`). Owner decision: no separate package. Everything
-moves into the aimbrace CLI. The 4 commits on `main` stay as checkpoints; this
-task rewires their content, it does not revert them.
+T100-T105 and T107 content is done. Owner decision: everything stays in this
+repository, no new repository, no new package, no new binary, no npm publish.
+The 4 commits on `main` stay as checkpoints; the standalone `scaffolder/`
+directory is removed and its content lives on inside the aimbrace CLI.
 
 ## 1. Read first (before touching code)
 

@@ -28,12 +28,11 @@ depend on `cordis` and host libraries directly. better-t-stack is the model
 
 ### Session 2026-10-06
 
-- Q: same repo or fresh repo for the scaffolder? → A: undecided (user rejected
-  both options). Default: same repo, alongside the frozen code. Reversible.
-- Q: delete or archive the old framework code? → A: undecided. Default: touch
-  nothing until scaffolder cutover. Reversible.
-- Q: shrink the website or leave it? → A: undecided. Default: leave it.
-  Reversible.
+- Q: same repo or fresh repo for the scaffolder? → A: same repo, decided.
+  Scaffolding ships inside the aimbrace CLI. No new repository, no new package.
+- Q: delete or archive the old framework code? → A: neither. Old code stays
+  frozen until cutover. No deletion, no archive branch.
+- Q: shrink the website or leave it? → A: leave it. Untouched.
 
 ## User Scenarios & Testing *(mandatory)*
 

@@ -58,11 +58,12 @@ Website, done outside this folder:
 Rebuild (ponytail pivot, see `specs/010-scaffolder-rebuild/review.md`):
 
 - [ ] T100 constitution amendment
-- [ ] T101 `create-aimbrace` CLI skeleton
+- [ ] T101 questionnaire and copy logic (built standalone, rewired in T109)
+- [ ] T109 rewire into `aimbrace init` plus `templates/`, delete `scaffolder/`
 - [ ] T102 Hono templates (base + agent)
 - [ ] T103 Fastify templates (base + agent)
 - [ ] T104 verify script
 - [ ] T105 template tests
 - [ ] T106 workspace check wiring
 - [ ] T107 quickstart page
-- [ ] T108 npm publish (blocked until owner `npm login`)
+- [ ] T108 mistaken `create-aimbrace@0.1.0` publish withdrawn (owner unpublish pending; see 010 tasks)

@@ -18,8 +18,9 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "bin",
     "dist",
-    "bin"
+    "templates"
   ],
   "scripts": {
     "build": "tsdown",

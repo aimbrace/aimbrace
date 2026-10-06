@@ -82,17 +82,19 @@ try {
 
   // 3. scaffold with the installed CLI, then run the scaffolded app
   const cli = join(app, 'node_modules', '@aimbrace', 'cli', 'bin', 'aimbrace.js')
-  run(process.execPath, [cli, 'init', 'hello'], { cwd: app })
+  run(process.execPath, [cli, 'init', 'hello', '--yes'], { cwd: app })
   const project = join(app, 'hello')
-  const check = run(process.execPath, [cli, 'check', '--cwd', project])
-  if (!/^OK:/m.test(check)) throw new Error(`aimbrace check failed: ${check}`)
-  console.log(check.trim())
-  const graph = run(process.execPath, [cli, 'graph', '--cwd', project])
-  if (!graph.includes('hello')) throw new Error('graph does not list the scaffolded plugin')
-  const started = run(process.execPath, [cli, 'run', '--once', '--cwd', project])
-  if (!started.includes('Started') || !started.includes('Stopped'))
-    throw new Error(`aimbrace run failed: ${started}`)
-  console.log(started.trim())
+  // `init` now scaffolds a Cordis template: its files must exist and it must depend on no @aimbrace package.
+  for (const file of ['package.json', 'src/app.mjs', 'src/plugins/routes.mjs']) {
+    if (!existsSync(join(project, file))) throw new Error(`aimbrace init did not write ${file}`)
+  }
+  const scaffolded = JSON.parse(readFileSync(join(project, 'package.json'), 'utf8'))
+  const framework = Object.keys({
+    ...scaffolded.dependencies,
+    ...scaffolded.devDependencies,
+  }).filter((name) => name.startsWith('@aimbrace/'))
+  if (framework.length > 0) throw new Error(`scaffolded project depends on ${framework.join(', ')}`)
+  console.log('aimbrace init wrote a self-contained project')
 
   // 4. a user's own plugin, written against the installed packages only
   writeFileSync(

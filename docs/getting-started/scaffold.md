@@ -1,9 +1,11 @@
 # Quickstart: a Cordis app in five minutes
 
-You need Node 22.12 or newer and pnpm. Nothing else.
+You need Node 22.12 or newer and pnpm, plus this checkout.
 
 ```sh
-npx create-aimbrace my-app          # answer the prompts, or pass --host and --agent (see below)
+corepack pnpm install
+corepack pnpm --filter @aimbrace/cli run build
+node packages/cli/bin/aimbrace.js init my-app   # answer the questions, or pass --host and --agent (see below)
 cd my-app
 pnpm install
 pnpm dev                            # http://127.0.0.1:3000
@@ -58,5 +60,5 @@ Cordis documentation: <https://github.com/cordiverse/cordis>.
 
 ## Troubleshooting
 
-- `refusing to write into ... not empty`: choose a new directory. The scaffolder never overwrites files.
+- `refusing to write into ... not empty`: choose a new directory. `aimbrace init` never overwrites files.
 - `pnpm install` fails: check your network and that Node is 22.12 or newer.

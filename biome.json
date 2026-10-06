@@ -13,6 +13,7 @@
       "!.specify",
       "!.claude",
       "!docs/aimbrace_spec.md",
+      "!packages/cli/templates",
       "!**/*.md"
     ]
   },
