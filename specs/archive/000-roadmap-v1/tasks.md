@@ -58,12 +58,12 @@ Website, done outside this folder:
 Rebuild (ponytail pivot, see `specs/010-scaffolder-rebuild/review.md`):
 
 - [ ] T100 constitution amendment
-- [ ] T101 questionnaire and copy logic (built standalone, rewired in T109)
-- [ ] T109 rewire into `aimbrace init` plus `templates/`, delete `scaffolder/`
-- [ ] T102 Hono templates (base + agent)
-- [ ] T103 Fastify templates (base + agent)
-- [ ] T104 verify script
-- [ ] T105 template tests
-- [ ] T106 workspace check wiring
+- [ ] T101 questionnaire and copy logic (reused by T109)
+- [ ] T109 rewire into `aimbrace init` plus `packages/cli/templates/`, delete `scaffolder/`
+- [ ] T102/T103 host templates superseded by T110 (Cordis-only decision)
+- [ ] T104 verify script (2 templates, cordis-only scan)
+- [ ] T105 template tests (both templates)
+- [ ] T106 superseded by T109 gate run
 - [ ] T107 quickstart page
+- [ ] T110 single-host Cordis-only templates (`base`, `agent`, `node:http`)
 - [x] T108 mistaken `create-aimbrace@0.1.0` publish withdrawn (owner deleted via registry UI; registry 404s)
