@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@deepseek-ai/cordis": "npm:@deepseek-ai/cordis@4.0.4",
+    "@std/assert": "jsr:@std/assert@1.0.19"
+  },
+  "tasks": {
+    "start": "deno run --allow-net=127.0.0.1 --allow-env=PORT src/main.ts",
+    "dev": "deno run --watch --allow-net=127.0.0.1 --allow-env=PORT src/main.ts",
+    "test": "deno test --allow-net=127.0.0.1",
+    "check": "deno fmt --check && deno lint && deno check src test"
+  },
+  "fmt": { "singleQuote": true, "semiColons": false, "lineWidth": 100 }
+}

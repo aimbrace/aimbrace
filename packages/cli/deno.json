@@ -1,0 +1,5 @@
+{
+  "name": "@aimbrace/cli",
+  "version": "0.2.0",
+  "exports": "./src/main.ts"
+}

@@ -1,0 +1,22 @@
+{
+  "workspace": ["./packages/cli"],
+  "imports": {
+    "@deepseek-ai/cordis": "npm:@deepseek-ai/cordis@4.0.4",
+    "@std/assert": "jsr:@std/assert@1.0.19"
+  },
+  "tasks": {
+    "aimbrace": "deno run --allow-read --allow-write --allow-run=deno packages/cli/src/main.ts",
+    "install-cli": "deno install --global --force --name aimbrace --allow-read --allow-write --allow-run=deno packages/cli/src/main.ts",
+    "test": "deno test --allow-read --allow-write --allow-net=127.0.0.1 --allow-env packages/cli/test docs/test",
+    "verify": "deno run --allow-read --allow-write --allow-run --allow-net=127.0.0.1 --allow-env scripts/verify_scaffolder.ts",
+    "check": "deno fmt --check && deno lint && deno check packages/cli docs/test scripts && deno task test && deno task verify"
+  },
+  "fmt": {
+    "singleQuote": true,
+    "semiColons": false,
+    "lineWidth": 100,
+    "exclude": ["specs/archive"]
+  },
+  "lint": { "exclude": ["specs/archive"] },
+  "exclude": [".claude", ".specify", "packages/cli/templates"]
+}
