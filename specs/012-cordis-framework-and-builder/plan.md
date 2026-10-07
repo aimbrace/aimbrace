@@ -7,6 +7,17 @@
 - Verify script and CLI test: the single allowed runtime dependency is `@deepseek-ai/cordis`.
 - Constitution 3.1.0: principle III names the package.
 
+## Phase 1b: Deno is the runtime
+
+- Templates rewritten in TypeScript: `deno.json` (imports, tasks with permissions), `src/main.ts`, `src/app.ts`,
+  `src/plugins/*.ts` with typed services, `test/*_test.ts` on `Deno.test` and `@std/assert`. `server` uses `Deno.serve`
+  and takes port and hostname as its Cordis plugin config.
+- CLI rewritten for Deno: `packages/cli/src/{templates,project,init,io,cli,main}.ts`; prompts with `prompt()`,
+  install with `deno install`; run from the checkout or installed as `aimbrace` with `deno install -g`.
+- Root `deno.json` workspace with fmt, lint and the `check` task; docs test and verify script in TypeScript.
+- Remove `package.json`, `pnpm-*`, `biome.json`, `tsconfig*`, `vitest.config.ts`, the CLI's build and `bin`.
+- CI on Deno 2.9.7. Constitution 4.0.0.
+
 ## Phase 2: the builder
 
 - `workspace` service: the project root and `src/plugins/`; refuses paths outside it.

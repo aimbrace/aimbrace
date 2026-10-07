@@ -3,6 +3,8 @@
 This constitution governs every spec, plan, task and package in this repository. If another document conflicts with
 it, this file wins until it is deliberately amended (with a version bump below).
 
+**Version 4.0.0 (amended 2026-10-07).** 4.0.0 makes Deno the runtime, replacing Node (spec 012 amendment).
+
 **Version 3.1.0 (amended 2026-10-07).** 3.1.0 names the Cordis package: the one ACRYL runs on (research R2).
 
 **Version 3.0.0 (amended 2026-10-06).** Version 1 defined AIMBRACE as a composition runtime on Cordis plus five
@@ -24,8 +26,15 @@ runtime package for apps to import.
 
 ### III. Generated projects depend on `@deepseek-ai/cordis` only
 
-A generated `package.json` has `@deepseek-ai/cordis`, pinned exactly, as its single runtime dependency. HTTP uses `node:http`. A template that needs
+A generated project imports `@deepseek-ai/cordis`, pinned exactly, and nothing else at runtime; its tests may import
+`@std/assert`. HTTP uses `Deno.serve`. A template that needs
 anything else needs a written reason in its spec. The verify script enforces this.
+
+### IIIa. Deno is the runtime
+
+Everything runs on Deno: templates, the CLI, docs examples, tests and scripts, written in TypeScript and run without a
+build. Deno's own `fmt`, `lint`, `check` and `test` are the toolchain. Every task declares the narrowest permissions that
+work; nothing defaults to `-A` except where a task genuinely needs it, and then the task says why.
 
 ### IV. Two templates
 
@@ -55,8 +64,8 @@ Ledgers say what is done, blocked and deferred. Docs describe only what the test
 
 ## Engineering rules
 
-- TypeScript (strict, ESM) for the CLI; JavaScript ESM for templates and scripts. Node 22.12 or newer.
-- pnpm workspaces, Biome, Vitest.
+- TypeScript everywhere, run by Deno 2.9.7 or newer. No build step, no `package.json`.
+- `deno fmt`, `deno lint`, `deno check`, `deno test`.
 - Small, coherent, conventional commits. Never add an AI agent as co-author.
 - Never use the em dash character in code, comments, docs or commit messages.
 - Do not hand-edit generated files or changelogs.
@@ -66,4 +75,4 @@ Ledgers say what is done, blocked and deferred. Docs describe only what the test
 Amendments need a changed version line, a research note in `specs/000-roadmap/research.md`, and updates to any plan
 they invalidate.
 
-**Version**: 3.1.0 | **Ratified**: 2026-10-06 | **Last Amended**: 2026-10-07
+**Version**: 4.0.0 | **Ratified**: 2026-10-06 | **Last Amended**: 2026-10-07
