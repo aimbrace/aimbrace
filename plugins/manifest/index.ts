@@ -91,7 +91,7 @@ function walkStrings(
 ): void {
   if (typeof value === 'string') visit(value, path)
   else if (Array.isArray(value))
-    value.forEach((item, index) => walkStrings(item, `${path}[${index}]`, visit))
+    for (const [index, item] of value.entries()) walkStrings(item, `${path}[${index}]`, visit)
   else if (isObject(value))
     for (const [key, item] of Object.entries(value)) walkStrings(item, `${path}.${key}`, visit)
 }
@@ -146,14 +146,18 @@ export function validate(document: unknown, known?: Iterable<string>): Diagnosti
   if (!Array.isArray(document.plugins))
     add('schema-error', 'plugins', 'must be a list of plugin rows')
   else {
-    document.plugins.forEach((row, index) => {
+    for (const [index, row] of (document.plugins as unknown[]).entries()) {
       const path = `plugins[${index}]`
-      if (!isObject(row))
-        return add('schema-error', path, 'a row must be a map with at least an id')
+      if (!isObject(row)) {
+        add('schema-error', path, 'a row must be a map with at least an id')
+        continue
+      }
       for (const key of Object.keys(row))
         if (!ROW_FIELDS.has(key)) add('schema-error', `${path}.${key}`, `unknown field '${key}'`)
-      if (typeof row.id !== 'string' || !ID.test(row.id))
-        return add('schema-error', `${path}.id`, 'must be lowercase letters, digits and dashes')
+      if (typeof row.id !== 'string' || !ID.test(row.id)) {
+        add('schema-error', `${path}.id`, 'must be lowercase letters, digits and dashes')
+        continue
+      }
       if (ids.has(row.id)) add('duplicate-row-id', `${path}.id`, `the id '${row.id}' is used twice`)
       ids.add(row.id)
       const use = row.use ?? row.id
@@ -177,7 +181,7 @@ export function validate(document: unknown, known?: Iterable<string>): Diagnosti
           }
         })
       }
-    })
+    }
   }
   for (const name of declared.keys())
     if (!used.has(name))
