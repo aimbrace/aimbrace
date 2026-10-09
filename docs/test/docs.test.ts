@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -65,4 +65,40 @@ describe('docs: Cordis examples run', () => {
       await import(pathToFileURL(file).href)
     },
   )
+})
+
+describe('docs: the extension contract in extending-apps.md', () => {
+  it('installs through the real extensions plugin and passes its own check', async () => {
+    const { Context } = await import('@deepseek-ai/cordis')
+    const { instance, pinnedInstance } = await import('../../plugins/instance/index.ts')
+    const { extensions } = await import('../../plugins/extensions/index.ts')
+    const block = /<!-- extension: hello -->\n```ts\n([\s\S]*?)```/.exec(
+      read('extending-apps.md'),
+    )?.[1]
+    expect(block).toBeTruthy()
+    const project = mkdtempSync(join(tmpdir(), 'aimbrace-docs-ext-'))
+    try {
+      const folder = join(project, 'extensions', 'hello')
+      mkdirSync(folder, { recursive: true })
+      writeFileSync(join(folder, 'index.ts'), block as string)
+      const app = new Context()
+      app.provide('greeting', 'hi')
+      await app.plugin(instance, pinnedInstance(join(project, '.aimbrace'), { root })).await()
+      const fiber = app.plugin(extensions, {
+        sources: [{ dir: join(project, 'extensions'), trust: 'list' }],
+      })
+      await fiber.await()
+      const result = await app.extensions.install(folder)
+      expect(result).toMatchObject({
+        ok: true,
+        name: 'hello',
+        action: 'installed',
+        state: 'active',
+      })
+      expect(app.get('hello')).toBe('hi, world')
+      await fiber.dispose()
+    } finally {
+      rmSync(project, { recursive: true, force: true })
+    }
+  })
 })

@@ -1,57 +1,71 @@
 # Getting started
 
-You need Node 22.12 or newer and pnpm.
+You need Node 22.18 or newer (Node runs the TypeScript directly, with no build step) and npm. Git, to save your app.
 
 ## Create an app
 
 From a checkout of this repository:
 
 ```sh
-pnpm install
-pnpm run build
-node packages/cli/bin/aimbrace.js init ../my-app     # answer the questions, or pass flags (below)
+pnpm install && pnpm run build        # once: the aimbrace command itself
+node packages/cli/bin/aimbrace.js init ../my-app --agent -y
 cd ../my-app
-pnpm install
-pnpm dev                                             # http://127.0.0.1:3000
+npm install
+npm run dev                           # prints its URL; the app's data lives in .aimbrace/
 ```
 
-In another terminal:
+`init` never writes into a directory that is not empty. Without `--agent` you get the smaller `app` template.
+
+| Template | Plugins | What it is |
+|---|---|---|
+| `app` | `instance`, `http`, `server`, `manifest`, `save` | a Cordis app that serves routes |
+| `agent` | the above plus `tasks`, `agent`, `extensions`, `builder` | the same, with an offline agent that can extend the app while it runs |
+
+Every generated app is TypeScript, has `npm test` (`node:test`) and `npm run check` (types), and depends at run time on
+`@deepseek-ai/cordis` and `yaml` (plus `@deepseek-ai/schemastery` if you add `settings`).
+
+## Try the agent
 
 ```sh
-curl http://127.0.0.1:3000/          # {"app":"my-app","ok":true}
-pnpm test
+curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"create route hello /hello Hello"}'
+# {"status":"completed","output":"hello: installed, active.", ...}
+curl <url>/hello            # {"text":"Hello"}
+curl <url>/tasks            # the run, as a durable task that owns its tool calls
 ```
 
-Stop the app with Ctrl+C. Every plugin is disposed and the server closes.
+The agent wrote a Cordis plugin into `extensions/hello/`, installed it into the running app, and checked that its route
+answers before reporting it live. See [Extending a running app](extending-apps.md).
 
-## The two templates
-
-| Command | You get |
-|---|---|
-| `aimbrace init my-app --no-agent -y` | `app`: a router, two routes and a `node:http` server, as Cordis plugins |
-| `aimbrace init my-app --agent -y` | `agent`: the same app plus an offline agent behind `POST /ask` |
-
-Both depend on `@deepseek-ai/cordis` and nothing else. `init` never writes into a directory that is not empty.
-
-Try the agent:
+## Add plugins
 
 ```sh
-curl -X POST http://127.0.0.1:3000/ask -H 'content-type: application/json' -d '{"question":"add 2 3"}'
-# {"status":"completed","output":"The answer is 5.","steps":2}
+node <aimbrace>/packages/cli/bin/aimbrace.js plugins             # the library
+node <aimbrace>/packages/cli/bin/aimbrace.js add settings        # copy one into this app, with what it requires
+npm install                                                       # new dependencies, if it added any
 ```
 
-The agent's model is deterministic and makes no network calls, so its tests run offline. Replace the `model` plugin
-with a real provider when you have one.
+Then mount it: add it to the registry in `src/app.ts` and a row in `aimbrace.yaml`. See [The plugin library](plugins.md).
 
-## Flags
+## Lock and save
 
-| Flag | Meaning |
+```sh
+npm run lock                 # aimbrace.lock.json: what the app is built from, with digests
+npm run save -- "add hello"  # git commit (and push, if there is a remote)
+```
+
+`save` refuses a file that looks like it holds a secret, and refuses to push an app that is not `visibility: public` to a
+public remote. Nothing is committed when it refuses.
+
+## Where things live
+
+| Path | What |
 |---|---|
-| `--agent` / `--no-agent` | include the offline agent (asked when not given) |
-| `--name <name>` | project name (default: the directory name) |
-| `--install` | run `pnpm install` after copying |
-| `-y`, `--yes` | ask nothing; no agent and no install unless flagged |
+| `aimbrace.yaml` | the app as data: plugin rows, config, parameters ([manifest](manifest.md)) |
+| `src/app.ts` | the registry of plugins your code provides; mounts the manifest |
+| `src/routes.ts` | your own plugin |
+| `src/plugins/` | plugins copied from the library; yours to edit |
+| `extensions/` | plugins installed while the app runs (`agent` template); part of your app |
+| `.aimbrace/` | the app's data: settings, installed-extension state, the extension ledger, task records (not committed) |
 
-## Next
-
-Read [Building with Cordis](cordis.md), then open `src/app.mjs` in your new project.
+Set `AIMBRACE_HOME` to keep the data elsewhere and `AIMBRACE_PORT` to choose the first port tried (`0` for any free port).
+Nothing else reads the environment.

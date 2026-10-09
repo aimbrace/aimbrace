@@ -34,4 +34,12 @@ A task closes when its evidence is on `main`.
 - [x] T207 P6: save, ported from `app-persistence`: the use case over git and hosting ports, the secret scan, private apps
   never pushed to a public remote, `npm run save`, a `save_app` tool for the agent. Evidence: 4 tests (one on a real git
   repository); verify saves a scaffolded app, then refuses a file holding an AWS key with nothing left staged.
-- [ ] T208 P7: docs.
+- [x] T208 P7: docs rewritten for what exists: getting started, the plugin library, extending a running app (the
+  extension contract, install stages, trust, the builder), the manifest. The docs test installs the documented example
+  extension through the real `extensions` plugin. Evidence: 28 Vitest tests.
+- [x] T209 CI green on Node 22 and 24 (`fa4a60e`). It had been red since `611a5d2`: on Linux `/bin/sh` does not pass
+  SIGINT to node, so the verify script now interrupts the app's process group, as Ctrl+C does.
+
+Open, recorded (each needs a real app that asks for it): a real model provider plugin; an execution-policy service for
+generated code (Gondolin-style isolation); a workflow engine (Absurd-style); the website, which still describes the old
+runtime.

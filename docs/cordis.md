@@ -52,7 +52,7 @@ assert.deepEqual(started, ['consumer'])
 ```
 
 Await fibers in dependency order: `fiber.await()` on a fiber that is still pending returns before it has started. The
-templates' `src/app.mjs` awaits each fiber after the plugins it injects.
+templates' `src/plugins/manifest` (`compose`) awaits each fiber after the plugins it injects.
 
 ## Effects clean up after the plugin
 
@@ -191,7 +191,7 @@ the `http` service.
 
 ## Testing
 
-Test what a user sees: boot the app on port 0, request a route, stop it. The templates' `test/app.test.mjs` does
+Test what a user sees: boot the app on port 0, request a route, stop it. The templates' `test/app.test.ts` does
 exactly that, with no mocks of Cordis.
 
 ## Further reading

@@ -4,42 +4,46 @@
 
 <h1 align="center">AIMBRACE</h1>
 
-<p align="center"><strong>Scaffold apps built on <a href="https://github.com/cordiverse/cordis">Cordis</a>.</strong><br>
-Cordis is the framework. AIMBRACE gives you a working start.</p>
+<p align="center"><strong>A framework for Cordis apps, built from ACRYL's best parts.</strong><br>
+Cordis is the framework. AIMBRACE gives you the plugins ACRYL proved, as code you own.</p>
 
-<p align="center"><a href="docs/README.md">Documentation</a> · <a href="docs/getting-started.md">Getting started</a> · <a href="docs/cordis.md">Building with Cordis</a></p>
+<p align="center"><a href="docs/README.md">Documentation</a> · <a href="docs/getting-started.md">Getting started</a> · <a href="docs/plugins.md">Plugin library</a> · <a href="docs/extending-apps.md">Extending a running app</a></p>
 
 ---
 
-Cordis already has what an app framework needs: plugins, services, `inject` dependencies, lifecycle, effects that clean
-up after themselves, events, and isolation. AIMBRACE adds no runtime on top. `aimbrace init` copies a small Cordis
-project that depends on `@deepseek-ai/cordis` only, and every line of it is yours.
+[Cordis](https://www.npmjs.com/package/@deepseek-ai/cordis) (the fork ACRYL runs on) already has what an app framework
+needs: plugins, services, `inject`, lifecycle, effects that clean up after themselves, and events. AIMBRACE adds no runtime
+on top. It is a library of Cordis plugins extracted from ACRYL, and a command that copies them into your app:
+
+- **instance**: one place decides where an app keeps its data and which port it uses
+- **settings**: validated, layered, watched settings in one YAML file
+- **extensions**: install, update and remove plugins while the app runs; a failed update keeps the previous version
+- **builder** and **agent**: an agent that writes, installs and checks plugins in the app it runs in
+- **tasks**: durable records of every run and tool call, readable after a restart
+- **manifest**: the app as data (`aimbrace.yaml`), with parameters, diagnostics and a lock
+- **save**: commit the app, refusing secrets and public remotes for private apps
 
 ```sh
 pnpm install && pnpm run build
 node packages/cli/bin/aimbrace.js init ../my-app --agent -y
-cd ../my-app && pnpm install && pnpm dev
+cd ../my-app && npm install && npm run dev
 ```
 
-Every part of the generated app is a Cordis plugin:
-
-| Plugin | Role |
-|---|---|
-| `http` | provides the router service |
-| `routes` | adds routes inside `ctx.effect`, removed when the plugin is disposed |
-| `server` | serves the router over `node:http`, closes on stop |
-| `model`, `tools`, `memory`, `agent` | the offline agent (`--agent`): one child fiber per run holds its step budget |
+Generated apps are TypeScript, run by Node 22.18 or newer with no build step, tested with `node:test`, and depend at run
+time on `@deepseek-ai/cordis` and `yaml`.
 
 ## Repository
 
 | Path | What |
 |---|---|
-| `packages/cli` | the `aimbrace` command (`init`, `help`, `version`) and its two templates, `app` and `agent` |
-| `scripts/verify-scaffolder.mjs` | scaffolds both templates, installs, runs their tests, boots them, requests their routes |
-| `docs/` | the documentation; its Cordis examples are executed by the test suite |
-| `specs/` | specs and ledgers ([roadmap](specs/000-roadmap/spec.md)) |
+| `plugins/` | the plugin library: each plugin's source, `plugin.json` and tests |
+| `packages/cli` | the `aimbrace` command (`init`, `add`, `plugins`) and the `app` and `agent` templates |
+| `scripts/verify-scaffolder.mjs` | scaffolds both templates, installs, type-checks, tests, boots them, drives the agent, saves |
+| `docs/` | the documentation; its examples are executed by the tests |
+| `specs/` | specs and ledgers ([roadmap](specs/000-roadmap/spec.md), [013](specs/013-acryl-extraction/spec.md)) |
 
-`pnpm run check` runs lint, build, typecheck, the tests and the scaffolder verification.
+`pnpm run check` runs lint, build, both type checks, the tests and the scaffolder verification. A Deno version of the
+runtime lives on the branch `012-deno-runtime-experiment`.
 
 ## License
 

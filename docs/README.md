@@ -1,8 +1,12 @@
 # AIMBRACE documentation
 
-AIMBRACE scaffolds apps built on [Cordis](https://github.com/cordiverse/cordis). Cordis is the framework: plugins,
-services, dependencies, lifecycle, cleanup and events. AIMBRACE adds no runtime of its own. `aimbrace init` copies a
-small, working Cordis project that depends on `@deepseek-ai/cordis` only, and you own every line of it.
+AIMBRACE is a framework for apps built on [Cordis](https://www.npmjs.com/package/@deepseek-ai/cordis), the plugin system
+ACRYL runs on. Cordis does the composing: plugins, services, dependencies, lifecycle, cleanup and events. AIMBRACE adds a
+library of plugins extracted from ACRYL, and a command that copies them into your app. You own every copied line; there
+is no AIMBRACE runtime to import.
 
-- [Getting started](getting-started.md) - `aimbrace init`, run the app, run its tests
-- [Building with Cordis](cordis.md) - plugins, services, `inject`, effects, events, a scope per task, HTTP on `node:http`
+- [Getting started](getting-started.md) - create an app, run it, add plugins, lock it, save it
+- [The plugin library](plugins.md) - every plugin: what it does, its service, its config, where it came from
+- [Extending a running app](extending-apps.md) - extensions, the builder, durable tasks; how an agent writes a plugin
+- [The app manifest](manifest.md) - `aimbrace.yaml`: the app as data, parameters, diagnostics, the lock
+- [Building with Cordis](cordis.md) - plugins, services, `inject`, effects, events, a scope per task, HTTP
