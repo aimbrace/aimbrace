@@ -47,6 +47,8 @@ export function apply() {
 }
 
 function summary(result: unknown): string {
+  const waiting = (result as { stage?: string; name?: string } | undefined)?.stage === 'approval'
+  if (waiting) return `${(result as { name: string }).name}: waiting for the owner's approval.`
   const answer = result as {
     ok?: boolean
     name?: string

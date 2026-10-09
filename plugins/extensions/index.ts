@@ -45,7 +45,8 @@ const STATES: readonly ExtensionState[] = [
 ]
 
 /** Whether new folders found in a source are installed at startup, or only listed until someone installs them. */
-export type Trust = 'install' | 'list'
+/** `install`: installed at start; `list`: only reported; `ask`: an install waits for an explicit approve (or deny), recorded in the ledger. */
+export type Trust = 'install' | 'list' | 'ask'
 
 export interface ExtensionSource {
   readonly dir: string
@@ -55,6 +56,8 @@ export interface ExtensionSource {
 export interface ExtensionsConfig {
   /** Where extension folders may come from. Defaults to `<app home>/extensions`, trusted to install. */
   sources?: readonly ExtensionSource[]
+  /** When true, every source that would install by itself asks for approval instead (`ask`). */
+  approval?: boolean
 }
 
 export interface ExtensionInfo {
@@ -80,7 +83,7 @@ export type InstallResult =
   | {
       readonly ok: false
       /** check: before anything changed; import: loading the code; activate: starting it; verify: its own `check` failed. */
-      readonly stage: 'check' | 'import' | 'activate' | 'verify'
+      readonly stage: 'check' | 'import' | 'activate' | 'verify' | 'approval'
       readonly name?: string
       readonly errors: readonly string[]
       /** Present for an update: whether the version that was running is running again. */
@@ -133,7 +136,14 @@ declare module '@deepseek-ai/cordis' {
     /** An extension was installed, updated, restored or removed. */
     'extensions/changed'(
       name: string,
-      action: 'installed' | 'updated' | 'restored' | 'removed',
+      action:
+        | 'installed'
+        | 'updated'
+        | 'restored'
+        | 'removed'
+        | 'requested'
+        | 'approved'
+        | 'denied',
     ): void
   }
 }
@@ -146,6 +156,8 @@ const KEPT =
 const RESTORED =
   'The version that was running is running again. Fix the error above, then install again.'
 const NOTHING = 'Nothing was installed. Fix the error above, then install again.'
+const WAITING =
+  'Nothing was installed. The owner must approve this version (approve) or refuse it (deny); then it installs.'
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 const inside = (path: string, folder: string) => {
@@ -176,6 +188,9 @@ export class Extensions extends Service {
   readonly ready: Promise<StartupSummary>
   private readonly installed = new Map<string, Installed>()
   private readonly stale = new Set<string>()
+  /** The version approved for each name in an `ask` source, and installs still waiting for a decision. */
+  private readonly approved = new Map<string, string>()
+  private readonly requests = new Map<string, { dir: string; version: string }>()
   private tail: Promise<unknown> = Promise.resolve()
   private disposed = false
 
@@ -185,7 +200,7 @@ export class Extensions extends Service {
     this.sources = (config.sources ?? [{ dir: join(home, 'extensions'), trust: 'install' }]).map(
       (source) => ({
         dir: resolve(source.dir),
-        trust: source.trust,
+        trust: config.approval === true && source.trust === 'install' ? 'ask' : source.trust,
       }),
     )
     this.stageRoot = join(home, 'extensions-staged')
@@ -259,6 +274,60 @@ export class Extensions extends Service {
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  /** Installs waiting for an owner's decision. */
+  approvals(): Array<{ name: string; version: string; dir: string }> {
+    return [...this.requests.entries()].map(([name, request]) => ({ name, ...request }))
+  }
+
+  /** Approve the version that is waiting, then install it. Refused when the source changed since it was requested. */
+  approve(name: string): Promise<InstallResult> {
+    return this.serial(async (): Promise<InstallResult> => {
+      const request = this.requests.get(name)
+      if (!request) {
+        return {
+          ok: false,
+          stage: 'approval',
+          name,
+          errors: [`nothing is waiting for approval for "${name}"`],
+          next: NOTHING,
+        }
+      }
+      this.requests.delete(name)
+      if (!existsSync(request.dir) || hashFolder(request.dir) !== request.version) {
+        return {
+          ok: false,
+          stage: 'approval',
+          name,
+          errors: [
+            'the source changed after it was requested; the new version needs its own request',
+          ],
+          next: NOTHING,
+        }
+      }
+      this.approved.set(name, request.version)
+      this.record({ kind: 'approved', name, version: request.version })
+      this.ctx.emit('extensions/changed', name, 'approved')
+      return this.installNow(request.dir)
+    })
+  }
+
+  /** Refuse the version that is waiting. Nothing changes except the ledger. */
+  deny(name: string): Promise<RemoveResult> {
+    return this.serial(async (): Promise<RemoveResult> => {
+      const request = this.requests.get(name)
+      if (!request)
+        return { ok: false, name, errors: [`nothing is waiting for approval for "${name}"`] }
+      this.requests.delete(name)
+      this.record({ kind: 'denied', name, version: request.version })
+      this.ctx.emit('extensions/changed', name, 'denied')
+      return { ok: true, name }
+    })
+  }
+
+  private trustOf(dir: string): Trust {
+    return this.sources.find((source) => inside(dir, source.dir))?.trust ?? 'list'
   }
 
   /** Extension folders in the sources that are not installed. */
@@ -397,6 +466,23 @@ export class Extensions extends Service {
     if (errors.length > 0) return { ok: false, stage: 'check', name, errors, next: NOTHING }
     const previous = this.installed.get(name)
     const version = hashFolder(dir)
+    const running =
+      previous && previous.version === version && STATES[previous.fiber.state] !== 'failed'
+    // A source that asks: this exact version must have been approved. Anything else waits, and the ledger says so.
+    if (!running && this.trustOf(dir) === 'ask' && this.approved.get(name) !== version) {
+      if (this.requests.get(name)?.version !== version) {
+        this.requests.set(name, { dir, version })
+        this.record({ kind: 'requested', name, version })
+        this.ctx.emit('extensions/changed', name, 'requested')
+      }
+      return {
+        ok: false,
+        stage: 'approval',
+        name,
+        errors: [`version ${version} is waiting for approval`],
+        next: WAITING,
+      }
+    }
     if (previous && previous.version === version && STATES[previous.fiber.state] !== 'failed') {
       const state = STATES[previous.fiber.state] ?? 'failed'
       return {
@@ -517,6 +603,8 @@ export class Extensions extends Service {
     }
     for (const [name, record] of Object.entries(records)) {
       try {
+        // What was installed before was approved then: an unchanged source starts again without asking.
+        this.approved.set(name, record.version)
         if (existsSync(record.source)) {
           const result = await this.installNow(record.source)
           if (result.ok) summary.installed.push(name)
@@ -548,7 +636,7 @@ export class Extensions extends Service {
     }
     for (const found of this.discover()) {
       if (this.installed.has(found.name)) continue
-      if (found.trust === 'list') {
+      if (found.trust !== 'install') {
         summary.pending.push(found.name)
         continue
       }

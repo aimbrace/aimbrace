@@ -11,6 +11,9 @@ Cordis is the framework. AIMBRACE gives you the plugins ACRYL proved, as code yo
 
 ---
 
+AIMBRACE is a prototype of the ACRYL Blends framework: a fast experiment on which of ACRYL's features make a good base for
+building agentic apps ([what it showed and what comes next](specs/013-acryl-extraction/handoff-to-blends.md)).
+
 [Cordis](https://www.npmjs.com/package/@deepseek-ai/cordis) (the fork ACRYL runs on) already has what an app framework
 needs: plugins, services, `inject`, lifecycle, effects that clean up after themselves, and events. AIMBRACE adds no runtime
 on top. It is a library of Cordis plugins extracted from ACRYL, and a command that copies them into your app:

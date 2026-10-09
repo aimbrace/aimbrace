@@ -1,5 +1,8 @@
 # 013: A usable app framework from ACRYL's best parts
 
+> **Status (owner, 2026-10-09): aimbrace is a prototype of the ACRYL Blends framework.** What it proves, how it maps to ACRYL,
+> and how far each Pi Durable idea has come: [handoff-to-blends.md](./handoff-to-blends.md).
+
 ## Decision (owner, 2026-10-09)
 
 AIMBRACE becomes a usable framework for Cordis apps by extracting the most useful, proven features of ACRYL (main at

@@ -53,6 +53,14 @@ always structured:
 
 `state` is the plugin's real Cordis state: `active`, `pending` (with `missing`: the services it waits for) or `failed`.
 
+## Approval
+
+Set `approval: true` in `aimbrace.yaml` (a parameter on the `extensions` row) and an install does not run until the owner
+decides. The install answers `stage: "approval"`, the request is written to the ledger, and nothing is installed. The owner
+reads `GET /extensions` (`waitingForApproval`) and answers `POST /extensions/approve {"name": ...}` or
+`POST /extensions/deny {"name": ...}`. Approval is for that exact version: if the source changes after the request, approving
+is refused and the new version needs its own request. A version approved once starts again after a restart without asking.
+
 ## Trust
 
 At startup, Extensions installs again what was installed, and installs new folders only from sources marked

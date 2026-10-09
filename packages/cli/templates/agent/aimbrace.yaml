@@ -9,6 +9,7 @@ metadata:
 parameters:
   hostname: { type: string, default: 127.0.0.1, description: The address the server listens on. }
   steps: { type: number, default: 6, description: Steps an agent run may take. }
+  approval: { type: boolean, default: false, description: When true, a plugin the agent installs waits for POST /extensions/approve. }
 plugins:
   - id: tasks
   - id: model
@@ -19,6 +20,8 @@ plugins:
       steps: "{{parameters.steps}}"
   - id: http
   - id: extensions
+    config:
+      approval: "{{parameters.approval}}"
   - id: builder
   - id: save
   - id: routes

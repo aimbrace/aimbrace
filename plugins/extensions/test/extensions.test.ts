@@ -215,3 +215,75 @@ test('an extension whose own check fails does not count as installed, and the pr
   const passing = await root.extensions.install(dir)
   assert.deepEqual(passing.ok && [passing.action, passing.state], ['updated', 'active'])
 })
+
+test('an ask source waits for approval: nothing runs until the owner approves exactly that version', async () => {
+  const { root, folder } = await boot({
+    sources: (home) => [{ dir: join(home, 'extensions'), trust: 'ask' }],
+  })
+  const dir = writeGreeter(folder, 'hello')
+  const waiting = await root.extensions.install(dir)
+  assert.equal(!waiting.ok && waiting.stage, 'approval')
+  assert.equal(root.get('greeting'), undefined)
+  assert.deepEqual(
+    root.extensions.approvals().map((request) => request.name),
+    ['greeter'],
+  )
+  assert.equal((await root.extensions.install(dir)).ok, false)
+  assert.equal(root.extensions.ledger().filter((entry) => entry.kind === 'requested').length, 1)
+
+  const installed = await root.extensions.approve('greeter')
+  assert.deepEqual(installed.ok && [installed.action, installed.state], ['installed', 'active'])
+  assert.equal(root.get('greeting'), 'hello')
+  assert.deepEqual(root.extensions.approvals(), [])
+
+  // A new version is a new request; approving after the file changed again is refused.
+  writeGreeter(folder, 'bonjour')
+  assert.equal(!(await root.extensions.install(dir)).ok, true)
+  writeGreeter(folder, 'hola')
+  const stale = await root.extensions.approve('greeter')
+  assert.match(!stale.ok ? (stale.errors[0] ?? '') : '', /changed after it was requested/)
+  assert.equal(root.get('greeting'), 'hello')
+
+  assert.equal((await root.extensions.install(dir)).ok, false)
+  assert.equal((await root.extensions.deny('greeter')).ok, true)
+  assert.equal((await root.extensions.deny('greeter')).ok, false)
+  assert.deepEqual(
+    root.extensions.ledger().map((entry) => entry.kind),
+    ['requested', 'approved', 'installed', 'requested', 'requested', 'denied'],
+  )
+})
+
+test('the approval option turns every installing source into one that asks', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'extensions-test-'))
+  cleanup.push(() => rmSync(home, { recursive: true, force: true }))
+  const root = new Context()
+  const fibers = [
+    root.plugin(instance, pinnedInstance(home, { root: appRoot })),
+    root.plugin(extensions, {
+      approval: true,
+      sources: [{ dir: join(home, 'extensions'), trust: 'install' }],
+    }),
+  ]
+  for (const fiber of fibers) await fiber.await()
+  cleanup.push(async () => {
+    for (const fiber of [...fibers].reverse()) await fiber.dispose()
+  })
+  const result = await root.extensions.install(writeGreeter(join(home, 'extensions'), 'hello'))
+  assert.equal(!result.ok && result.stage, 'approval')
+})
+
+test('an approved extension starts again after a restart without asking', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'extensions-test-'))
+  cleanup.unshift(() => rmSync(home, { recursive: true, force: true }))
+  const asking = (dir: string): ExtensionSource[] => [
+    { dir: join(dir, 'extensions'), trust: 'ask' },
+  ]
+  const first = await boot({ home, sources: asking })
+  await first.root.extensions.install(writeGreeter(first.folder, 'hello'))
+  await first.root.extensions.approve('greeter')
+  await first.stop()
+  const second = await boot({ home, sources: asking })
+  assert.deepEqual((await second.root.extensions.ready).installed, ['greeter'])
+  assert.equal(second.root.get('greeting'), 'hello')
+  assert.deepEqual(second.root.extensions.approvals(), [])
+})

@@ -83,3 +83,19 @@ test('stopping the app cancels running work and says so', async () => {
     ['cancelled', 'the app stopped'],
   )
 })
+
+test('every task carries the digest of the manifest the app was composed from', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'tasks-test-'))
+  cleanup.push(() => rmSync(home, { recursive: true, force: true }))
+  const root = new Context()
+  const fibers = [
+    root.plugin(instance, pinnedInstance(home)),
+    root.plugin(tasks, { manifest: 'sha256:abc' }),
+  ]
+  for (const fiber of fibers) await fiber.await()
+  const task = root.tasks.start('build', {})
+  assert.equal(root.tasks.get(task.id)?.manifest, 'sha256:abc')
+  assert.match(readFileSync(join(home, 'tasks.jsonl'), 'utf8'), /"manifest":"sha256:abc"/)
+  task.complete('ok')
+  for (const fiber of [...fibers].reverse()) await fiber.dispose()
+})

@@ -61,3 +61,43 @@ test('the agent builds, updates, protects and removes a plugin in the running ap
     await rm(project, { recursive: true, force: true })
   }
 })
+
+test('with approval on, an install waits for the owner; approving it makes it live', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'approval-project-'))
+  const chosen = withPort(pinnedInstance(join(project, '.aimbrace'), { root: project }), 0)
+  const app = await createApp(chosen, { values: { approval: true } })
+  const post = async (path: string, body: unknown) =>
+    (await (
+      await fetch(`${app.url}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    ).json()) as Record<string, unknown>
+  try {
+    assert.equal(
+      (await post('/ask', { question: 'create route hello /hello Hello' })).output,
+      "hello: waiting for the owner's approval.",
+    )
+    assert.equal((await fetch(`${app.url}/hello`)).status, 404)
+    const listed = (await (await fetch(`${app.url}/extensions`)).json()) as {
+      waitingForApproval: Array<{ name: string }>
+    }
+    assert.deepEqual(
+      listed.waitingForApproval.map((request) => request.name),
+      ['hello'],
+    )
+    assert.equal(
+      ((await post('/extensions/approve', { name: 'hello' })) as { state?: string }).state,
+      'active',
+    )
+    assert.deepEqual(await (await fetch(`${app.url}/hello`)).json(), { text: 'Hello' })
+    const tasks = (await (await fetch(`${app.url}/tasks`)).json()) as Array<{ manifest?: string }>
+    assert.ok(
+      tasks.length > 0 && tasks.every((task) => /^sha256:[0-9a-f]{64}$/.test(task.manifest ?? '')),
+    )
+  } finally {
+    await app.stop()
+    await rm(project, { recursive: true, force: true })
+  }
+})

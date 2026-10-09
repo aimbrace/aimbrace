@@ -62,6 +62,9 @@ export async function createApp(
     // The `model` row mounts the scripted model, or the real one when a model is configured.
     ...(await compose(root, manifest, options.model ? { ...registry, model: openai } : registry, {
       ...(options.model ? { model: { ...options.model } } : {}),
+      // Runtime values the manifest cannot hold: the manifest's own digest (every task records it), and who may install.
+      tasks: { manifest: `sha256:${manifest.digest}` },
+      // The `approval` parameter in aimbrace.yaml (the extensions row) turns this source into one that asks.
       extensions: { sources: [{ dir: extensionsDir, trust: 'install' }] },
       builder: { dir: extensionsDir },
       server: { port: chosen.port.start, scan: chosen.port.scan },

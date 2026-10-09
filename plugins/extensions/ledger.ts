@@ -5,7 +5,15 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-export type LedgerKind = 'installed' | 'updated' | 'removed' | 'refused' | 'restored'
+export type LedgerKind =
+  | 'installed'
+  | 'updated'
+  | 'removed'
+  | 'refused'
+  | 'restored'
+  | 'requested'
+  | 'approved'
+  | 'denied'
 
 export interface LedgerEntry {
   readonly at: string

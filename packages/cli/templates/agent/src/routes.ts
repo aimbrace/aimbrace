@@ -18,9 +18,27 @@ export const routes = {
     ctx.effect(() => ctx.http.route('GET', '/health', () => ({ body: { ok: true } })))
     ctx.effect(() =>
       ctx.http.route('GET', '/extensions', () => ({
-        body: { installed: ctx.extensions.list(), notInstalled: ctx.extensions.pending() },
+        body: {
+          installed: ctx.extensions.list(),
+          notInstalled: ctx.extensions.pending(),
+          waitingForApproval: ctx.extensions.approvals(),
+        },
       })),
     )
+    // The owner's decision on an install that is waiting (the `approval` parameter in aimbrace.yaml).
+    for (const [path, decide] of [
+      ['/extensions/approve', (name: string) => ctx.extensions.approve(name)],
+      ['/extensions/deny', (name: string) => ctx.extensions.deny(name)],
+    ] as const) {
+      ctx.effect(() =>
+        ctx.http.route('POST', path, async ({ body }) => {
+          const name = (body as { name?: unknown } | undefined)?.name
+          if (typeof name !== 'string')
+            return { status: 400, body: { error: 'name must be a string' } }
+          return { body: await decide(name) }
+        }),
+      )
+    }
     ctx.effect(() =>
       ctx.http.route('GET', '/tasks', () => ({ body: ctx.tasks.list().slice(0, 100) })),
     )

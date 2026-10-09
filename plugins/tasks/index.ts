@@ -14,12 +14,19 @@ import { join } from 'node:path'
 import { type Context, Service } from '@deepseek-ai/cordis'
 import type {} from '../instance/index.ts'
 
+export interface TasksConfig {
+  /** Recorded on every task: the digest of the manifest the app was composed from. */
+  manifest?: string
+}
+
 export type TaskStatus = 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
 
 export interface TaskRecord {
   readonly id: string
   readonly kind: string
   readonly parent?: string
+  /** The digest of the manifest the app was composed from, so a task traces to the configuration that ran it. */
+  readonly manifest?: string
   readonly input: unknown
   readonly status: TaskStatus
   readonly result?: unknown
@@ -70,8 +77,11 @@ export class Tasks extends Service {
   private readonly records = new Map<string, TaskRecord>()
   private readonly controllers = new Map<string, AbortController>()
 
-  constructor(ctx: Context) {
+  private readonly manifest: string | undefined
+
+  constructor(ctx: Context, config: TasksConfig = {}) {
     super(ctx, 'tasks')
+    this.manifest = config.manifest
     this.file = join(ctx.appInstance.home, 'tasks.jsonl')
     this.load()
     const interrupted: string[] = []
@@ -112,6 +122,7 @@ export class Tasks extends Service {
       id,
       kind,
       ...(options.parent === undefined ? {} : { parent: options.parent }),
+      ...(this.manifest === undefined ? {} : { manifest: this.manifest }),
       input,
       status: 'running',
       createdAt: now,
@@ -217,7 +228,7 @@ export class Tasks extends Service {
 export const tasks = {
   name: 'tasks',
   inject: ['appInstance'],
-  apply(ctx: Context) {
-    new Tasks(ctx)
+  apply(ctx: Context, config?: TasksConfig) {
+    new Tasks(ctx, config ?? {})
   },
 }

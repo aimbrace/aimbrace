@@ -2,6 +2,8 @@
 
 ## Product
 
+**aimbrace is a prototype** of the ACRYL Blends framework (see [handoff](../013-acryl-extraction/handoff-to-blends.md)).
+
 AIMBRACE scaffolds apps built on Cordis. Cordis is the framework; AIMBRACE adds no runtime. The product is the
 `aimbrace` command and its templates. A generated project depends on `cordis` only.
 
