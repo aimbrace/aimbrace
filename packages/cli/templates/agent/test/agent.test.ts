@@ -29,11 +29,12 @@ const ask = (app: App, body: unknown) =>
 
 test('the agent uses a tool and answers over HTTP', () =>
   withApp(async (app) => {
-    assert.deepEqual(await (await ask(app, { question: 'add 2 3' })).json(), {
-      status: 'completed',
-      output: 'The answer is 5.',
-      steps: 2,
-    })
+    const answer = (await (await ask(app, { question: 'add 2 3' })).json()) as {
+      output: string
+      trace: unknown[]
+    }
+    assert.equal(answer.output, 'The answer is 5.')
+    assert.deepEqual(answer.trace, [{ tool: 'add', input: [2, 3], result: 5 }])
   }))
 
 test('a body without a question is refused', () =>

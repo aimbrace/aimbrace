@@ -16,7 +16,13 @@ A task closes when its evidence is on `main`.
   version on a failed update (and an untouched old version on an import error), remove, reload, ledger, startup pass with
   trust rules, a public `module.registerHooks` resolver for staged imports. Evidence: 9 tests, including two real defects
   found and fixed (an empty staging folder left by remove; mounted extensions not disposed with the plugin).
-- [ ] T205 P4: builder and agent; the verify script proves the self-extension loop.
+- [x] T205 P4: builder and agent. `tools` is a lifecycle-owned registry, the scripted model learns commands from other
+  plugins (`teach`), runs carry a tool-call trace; `builder` gives the agent confined `write_plugin`, `install_plugin`,
+  `read_plugin`, `list_plugins`, `remove_plugin`. Evidence: 7 agent and builder tests; verify, against `npm start`:
+  create, update, a broken update that keeps the old version, type check of the agent's code with the app, restart,
+  removal.
+- [ ] T205a P4b (from the pi.dev and Pi Durable comparison): durable task records and a self-check before an extension
+  counts as live. See spec, "Ideas from Pi Durable".
 - [ ] T206 P5: manifest.
 - [ ] T207 P6: save.
 - [ ] T208 P7: docs.

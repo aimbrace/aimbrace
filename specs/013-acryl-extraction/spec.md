@@ -62,6 +62,26 @@ the running app: the builder writes a plugin that adds a route, the route answer
 broken update is refused and the previous answer still comes back; removal makes the route 404; a restart keeps the
 installed plugin.
 
+## Ideas from Pi Durable (owner, 2026-10-09)
+
+Source: the owner's comparison `Pi.dev Durable Objects And ACRYL Comparison and analysis for what to take for ideas to
+implement.md` (capture inbox). Pi Durable is experimental and built on Chord, not Cordis, so the package is not adopted.
+Its patterns are, in the smallest form that fits Cordis:
+
+- **FR8 Durable task records** (`tasks` plugin): every agent run is a task with an id, an optional parent (ownership),
+  its input, status (`running`, `completed`, `failed`, `cancelled`, `interrupted`), result or error, the tool-call trace
+  and timestamps, appended to a log in the app's home and readable after a restart. A task found `running` at startup
+  is marked `interrupted`, never silently resumed: side effects are not assumed idempotent (the comparison's warning).
+  Cancelling a task cancels its children.
+- **FR9 Commit before "done"** (evolution transaction): an extension may export `check(ctx)`; after it activates,
+  Extensions runs the check, and only a passing check makes the install count. A failing check rolls back exactly like a
+  failed start. The ledger records the result before the answer is returned.
+- **FR10 One place to observe:** tasks and the extension ledger are queryable through their services and over HTTP in
+  the agent template, so a surface renders state instead of reading a chat log.
+
+Recorded, not adopted now: Absurd (PostgreSQL workflows), Gondolin (micro-VM execution for generated code; no Windows),
+an execution-policy service. Each needs a real app that asks for it.
+
 ## Out of scope
 
 npm publishing; the website; a real model provider (the scripted model stays the default).

@@ -1,9 +1,17 @@
 import type { Context } from '@deepseek-ai/cordis'
 
-/** Tools the agent may call. */
+/** One tool: what it does (for the model) and how to run it. */
+export interface Tool {
+  readonly description: string
+  run(input: unknown): unknown | Promise<unknown>
+}
+
+/** The tool registry. A plugin registers its tools inside `ctx.effect`, so they leave with it. */
 export interface Tools {
-  list(): string[]
-  call(name: string, args: number[]): unknown
+  /** Register a tool. Returns the function that removes it. */
+  register(name: string, tool: Tool): () => void
+  list(): Array<{ name: string; description: string }>
+  call(name: string, input: unknown): Promise<unknown>
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -12,15 +20,31 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Add a function to `table` to give the model a new capability. */
+/** Provides the registry, with one example tool (`add`). */
 export function tools(ctx: Context) {
-  const table: Record<string, (...args: number[]) => unknown> = { add: (a = 0, b = 0) => a + b }
-  ctx.provide('tools', {
-    list: () => Object.keys(table),
-    call(name, args) {
-      const run = table[name]
-      if (!run) throw new Error(`unknown tool "${name}"`)
-      return run(...args)
+  const table = new Map<string, Tool>()
+  const registry: Tools = {
+    register(name, tool) {
+      if (table.has(name)) throw new Error(`tool "${name}" is already registered`)
+      table.set(name, tool)
+      return () => void table.delete(name)
     },
-  } satisfies Tools)
+    list: () =>
+      [...table.entries()].map(([name, tool]) => ({ name, description: tool.description })),
+    async call(name, input) {
+      const tool = table.get(name)
+      if (!tool) throw new Error(`unknown tool "${name}"`)
+      return await tool.run(input)
+    },
+  }
+  ctx.provide('tools', registry)
+  ctx.effect(() =>
+    registry.register('add', {
+      description: 'Add two numbers: input [a, b].',
+      run: (input) => {
+        const [a = 0, b = 0] = Array.isArray(input) ? (input as number[]) : []
+        return a + b
+      },
+    }),
+  )
 }

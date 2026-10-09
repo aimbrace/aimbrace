@@ -1,11 +1,31 @@
 import type { Context } from '@deepseek-ai/cordis'
 
-/** One model step: either final text, or a tool to call with its arguments. */
-export type Step = { text: string; tool?: undefined } | { tool: string; args: number[] }
+/** One model step: final text, or a tool to call with its input. */
+export type Step =
+  | { readonly text: string; readonly tool?: undefined }
+  | { readonly tool: string; readonly input: unknown }
+
+/** What a model sees at each step of a run. */
+export interface ModelInput {
+  readonly question: string
+  /** 0 for the first step of a run. */
+  readonly step: number
+  /** The previous tool's result, if the previous step called one. */
+  readonly toolResult?: unknown
+}
 
 /** What the agent needs from a model. Replace this plugin with a real provider when you have one. */
 export interface Model {
-  complete(input: { question: string; toolResult?: unknown }): Promise<Step>
+  complete(input: ModelInput): Promise<Step>
+}
+
+/** A rule of the scripted model: a step for the input, or `undefined` when it does not apply. */
+export type Rule = (input: ModelInput) => Step | undefined
+
+/** The deterministic model. Other plugins teach it rules for their commands, so whole flows are tested without a network. */
+export interface ScriptedModel extends Model {
+  /** Add a rule, tried before the built-in ones. Returns the function that removes it. */
+  teach(rule: Rule): () => void
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -14,16 +34,36 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+const builtIn: Rule[] = [
+  ({ toolResult, step }) =>
+    step > 0 ? { text: `The answer is ${String(toolResult)}.` } : undefined,
+  ({ question }) => {
+    const sum = /^add\s+(-?\d+)\s+(-?\d+)$/.exec(question.trim())
+    return sum ? { tool: 'add', input: [Number(sum[1]), Number(sum[2])] } : undefined
+  },
+]
+
 /** A deterministic model: no keys, no network, the same answer every time. */
 export function model(ctx: Context) {
+  const taught: Rule[] = []
   ctx.provide('model', {
-    complete({ question, toolResult }) {
-      if (toolResult !== undefined) {
-        return Promise.resolve({ text: `The answer is ${toolResult}.` })
-      }
-      const sum = /^add\s+(-?\d+)\s+(-?\d+)$/.exec(question.trim())
-      if (sum) return Promise.resolve({ tool: 'add', args: [Number(sum[1]), Number(sum[2])] })
-      return Promise.resolve({ text: `You said: ${question}` })
+    teach(rule) {
+      taught.push(rule)
+      return () => void taught.splice(taught.indexOf(rule), 1)
     },
-  } satisfies Model)
+    complete(input) {
+      for (const rule of [...taught, ...builtIn]) {
+        const step = rule(input)
+        if (step) return Promise.resolve(step)
+      }
+      return Promise.resolve({ text: `You said: ${input.question}` })
+    },
+  } satisfies ScriptedModel)
+}
+
+/** The scripted model, when the app runs one (a real provider has no `teach`). */
+export function scripted(model: Model | undefined): ScriptedModel | undefined {
+  return model && typeof (model as Partial<ScriptedModel>).teach === 'function'
+    ? (model as ScriptedModel)
+    : undefined
 }

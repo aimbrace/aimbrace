@@ -107,29 +107,65 @@ try {
     log(`${template}: installed, project tests pass`)
 
     const home = mkdtempSync(join(tmpdir(), `verify-home-${template}-`))
-    const child = spawn(npm, ['start'], {
-      cwd: dir,
-      env: { ...process.env, AIMBRACE_HOME: home, AIMBRACE_PORT: '0' },
-      shell: process.platform === 'win32',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
+    const start = () =>
+      spawn(npm, ['start'], {
+        cwd: dir,
+        env: { ...process.env, AIMBRACE_HOME: home, AIMBRACE_PORT: '0' },
+        shell: process.platform === 'win32',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    let child = start()
     try {
-      const url = await waitForUrl(child)
+      let url = await waitForUrl(child)
       const index = await json(await fetch(`${url}/`), `${template}: GET /`)
       if (index.app !== name || index.ok !== true)
         fail(`${template}: GET / answered ${JSON.stringify(index)}`)
       await json(await fetch(`${url}/health`), `${template}: GET /health`)
       if (template === 'agent') {
-        const answer = await json(
-          await fetch(`${url}/ask`, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ question: 'add 2 3' }),
-          }),
-          'agent: POST /ask',
+        const ask = async (question) =>
+          (
+            await json(
+              await fetch(`${url}/ask`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ question }),
+              }),
+              `agent: POST /ask "${question}"`,
+            )
+          ).output
+        const hello = async () => {
+          const response = await fetch(`${url}/hello`)
+          return response.status === 200 ? (await response.json()).text : response.status
+        }
+        const expect = (actual, expected, what) => {
+          if (actual !== expected)
+            fail(
+              `agent: ${what}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`,
+            )
+        }
+        expect(await ask('add 2 3'), 'The answer is 5.', 'tool call')
+        // The builder loop, against the app a user runs: the agent extends it while it serves.
+        expect(await ask('create route hello /hello Hello'), 'hello: installed, active.', 'create')
+        expect(await hello(), 'Hello', 'GET /hello after create')
+        expect(await ask('update route hello /hello Bonjour'), 'hello: updated, active.', 'update')
+        expect(await hello(), 'Bonjour', 'GET /hello after update')
+        const refused = await ask('break plugin hello')
+        if (!/Previous version restored: true/.test(refused))
+          fail(`agent: broken update: ${refused}`)
+        expect(await hello(), 'Bonjour', 'GET /hello after a broken update')
+        await ask('update route hello /hello Bonjour')
+        log(
+          'agent: built, updated and protected a plugin live (create, update, broken update kept the old one)',
         )
-        if (answer.output !== 'The answer is 5.')
-          fail(`agent: POST /ask answered ${JSON.stringify(answer)}`)
+        // The agent's code is the app's code: it type-checks with the app, and starts again after a restart.
+        capture(npm, ['run', 'check'], { cwd: dir })
+        await stopCleanly(child)
+        child = start()
+        url = await waitForUrl(child)
+        expect(await hello(), 'Bonjour', 'GET /hello after a restart')
+        expect(await ask('remove plugin hello'), 'hello: done.', 'remove')
+        expect(await hello(), 404, 'GET /hello after remove')
+        log('agent: the plugin type-checks with the app, survives a restart, and is removed live')
       }
       log(`${template}: served ${url}`)
     } finally {
