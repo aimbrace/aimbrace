@@ -76,6 +76,20 @@ describe('library', () => {
     expect(() => closure(['nope'], readLibrary())).toThrow(/no plugin "nope"/)
   })
 
+  it('every plugin states the services it provides and injects, and every injected service has a provider', () => {
+    const library = [...readLibrary().values()] as unknown as Array<{
+      name: string
+      inject: string[]
+      provides: string[]
+    }>
+    const provided = new Set(library.flatMap((plugin) => plugin.provides))
+    for (const plugin of library) {
+      expect(Array.isArray(plugin.provides) && Array.isArray(plugin.inject), plugin.name).toBe(true)
+      for (const service of plugin.inject)
+        expect(provided.has(service), `${plugin.name} injects ${service}`).toBe(true)
+    }
+  })
+
   it('every plugin depends only on the named run-time packages', () => {
     const allowed = new Set(['@deepseek-ai/cordis', '@deepseek-ai/schemastery', 'yaml'])
     for (const plugin of readLibrary().values()) {

@@ -2,6 +2,8 @@
   "name": "manifest",
   "description": "The app as data: aimbrace.yaml lists ordered plugin rows with config, parameters and on/off switches; validated, composed and locked.",
   "requires": ["digest"],
+  "inject": [],
+  "provides": [],
   "dependencies": {
     "@deepseek-ai/cordis": "4.0.4",
     "yaml": "2.9.0"

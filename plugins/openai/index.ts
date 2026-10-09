@@ -37,7 +37,12 @@ interface ToolCallMessage {
 
 type Message =
   | { role: 'system' | 'user'; content: string }
-  | { role: 'assistant'; content: string | null; tool_calls?: ToolCallMessage[] }
+  | {
+      role: 'assistant'
+      content: string | null
+      tool_calls?: ToolCallMessage[]
+      reasoning_content?: string
+    }
   | { role: 'tool'; tool_call_id: string; content: string }
 
 /** The chat messages for a step: system, the question, then each tool call and its result. */
@@ -58,6 +63,8 @@ export function messagesFor(input: ModelInput, system: string): Message[] {
           function: { name: call.tool, arguments: JSON.stringify(call.input ?? {}) },
         },
       ],
+      // A thinking model (DeepSeek) refuses the next request unless its reasoning for the call comes back with it.
+      ...(call.reasoning !== undefined ? { reasoning_content: call.reasoning } : {}),
     })
     messages.push({
       role: 'tool',
@@ -106,7 +113,13 @@ export async function complete(
       `the model API answered ${response.status}: ${(await response.text()).slice(0, 300)}`,
     )
   const answer = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null; tool_calls?: ToolCallMessage[] } }>
+    choices?: Array<{
+      message?: {
+        content?: string | null
+        reasoning_content?: string | null
+        tool_calls?: ToolCallMessage[]
+      }
+    }>
   }
   const message = answer.choices?.[0]?.message
   if (!message) throw new ModelError('the model API answered without a message')
@@ -116,9 +129,21 @@ export async function complete(
     try {
       parsed = call.function.arguments ? JSON.parse(call.function.arguments) : {}
     } catch {
-      return { tool: call.function.name, input: { invalidArguments: call.function.arguments } }
+      return {
+        tool: call.function.name,
+        input: { invalidArguments: call.function.arguments },
+        ...(typeof message.reasoning_content === 'string'
+          ? { reasoning: message.reasoning_content }
+          : {}),
+      }
     }
-    return { tool: call.function.name, input: parsed }
+    return {
+      tool: call.function.name,
+      input: parsed,
+      ...(typeof message.reasoning_content === 'string'
+        ? { reasoning: message.reasoning_content }
+        : {}),
+    }
   }
   return { text: (message.content ?? '').trim() || '(no answer)' }
 }

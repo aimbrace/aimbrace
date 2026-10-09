@@ -31,6 +31,7 @@ test('drives a tool call and a final answer through the API, rebuilding the conv
   const api = await fakeApi([
     {
       content: null,
+      reasoning_content: 'I should add.',
       tool_calls: [{ id: 'x', type: 'function', function: { name: 'add', arguments: '{"0":2}' } }],
     },
     { content: 'Done: 2.' },
@@ -49,6 +50,12 @@ test('drives a tool call and a final answer through the API, rebuilding the conv
   assert.equal(api.received[0]?.auth, 'Bearer k')
   assert.ok(api.received[0]?.body.tools.some((tool) => tool.function.name === 'add'))
   assert.equal(api.received[1]?.body.messages.length, 4)
+  // A thinking model's reasoning for the call is sent back with it on the next step.
+  assert.equal(
+    ((api.received[1]?.body.messages ?? [])[2] as { reasoning_content?: string } | undefined)
+      ?.reasoning_content,
+    'I should add.',
+  )
   await api.close()
 })
 

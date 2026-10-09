@@ -1,9 +1,9 @@
 import type { Context } from '@deepseek-ai/cordis'
 
-/** One model step: final text, or a tool to call with its input. */
+/** One model step: final text, or a tool to call with its input. `reasoning` is a thinking model's reasoning for the call; it must be given back on the next step, so the run keeps it. */
 export type Step =
   | { readonly text: string; readonly tool?: undefined }
-  | { readonly tool: string; readonly input: unknown }
+  | { readonly tool: string; readonly input: unknown; readonly reasoning?: string }
 
 /** What a model sees at each step of a run. */
 export interface ModelInput {
@@ -18,6 +18,7 @@ export interface ModelInput {
     readonly input: unknown
     readonly result?: unknown
     readonly error?: string
+    readonly reasoning?: string
   }>
   /** The tools the model may call. */
   readonly tools?: ReadonlyArray<{ readonly name: string; readonly description: string }>

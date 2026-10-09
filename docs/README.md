@@ -5,6 +5,8 @@ ACRYL runs on. Cordis does the composing: plugins, services, dependencies, lifec
 library of plugins extracted from ACRYL, and a command that copies them into your app. You own every copied line; there
 is no AIMBRACE runtime to import.
 
+## Documentation
+
 - [Getting started](getting-started.md) - create an app, run it, add plugins, lock it, save it
 - [The plugin library](plugins.md) - every plugin: what it does, its service, its config, where it came from
 - [Extending a running app](extending-apps.md) - extensions, the builder, durable tasks; how an agent writes a plugin

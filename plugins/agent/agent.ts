@@ -9,6 +9,8 @@ export interface ToolCall {
   readonly input: unknown
   readonly result?: unknown
   readonly error?: string
+  /** The thinking model's reasoning for this call, kept so the next step can send it back. */
+  readonly reasoning?: string
 }
 
 /** How a run ended, with every tool call it made. `task` is its durable record's id when the app records tasks. */
@@ -109,11 +111,21 @@ export const agent = {
                 : undefined
               try {
                 toolResult = await scope.tools.call(step.tool, step.input)
-                trace.push({ tool: step.tool, input: step.input, result: toolResult })
+                trace.push({
+                  tool: step.tool,
+                  input: step.input,
+                  result: toolResult,
+                  ...(step.reasoning !== undefined ? { reasoning: step.reasoning } : {}),
+                })
                 call?.complete(toolResult)
               } catch (error) {
                 toolResult = { error: message(error) }
-                trace.push({ tool: step.tool, input: step.input, error: message(error) })
+                trace.push({
+                  tool: step.tool,
+                  input: step.input,
+                  error: message(error),
+                  ...(step.reasoning !== undefined ? { reasoning: step.reasoning } : {}),
+                })
                 call?.fail(error)
               }
               record?.progress({ steps: budget.steps, trace })

@@ -47,6 +47,13 @@ A task closes when its evidence is on `main`.
   `aimbrace add <folder>` brings an external plugin into an app's `extensions/`. Evidence: builder and CLI tests; verify
   packages the agent's plugin in one app and serves it from a second app.
 
+- [x] T212 Proven with a real model (DeepSeek, `deepseek-flash`, run once by hand with the key in the environment only):
+  from "build a plugin named clock that adds GET /time", the agent listed plugins, wrote the plugin, installed it, got
+  `state: active` from the plugin's own check in about 5 s, and `GET /time` answered; all four task records `completed`.
+  The run found a real gap that the fake API could not: a thinking model returns `reasoning_content` with a tool call and
+  refuses the next request unless it comes back, even when empty. The run now keeps it per call and sends it back.
+  A local `qwen2.5` through Ollama returned empty replies and was not pursued: a small model, not the framework.
+
 Open, recorded (each needs a real app that asks for it): an execution-policy service for
 generated code (Gondolin-style isolation); a workflow engine (Absurd-style); the website, which still describes the old
 runtime.

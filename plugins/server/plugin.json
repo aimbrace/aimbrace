@@ -2,5 +2,9 @@
   "name": "server",
   "description": "Serves the http router over node:http; moves to the next free port when asked; closes on stop.",
   "requires": ["http"],
-  "dependencies": { "@deepseek-ai/cordis": "4.0.4" }
+  "inject": ["http"],
+  "provides": ["server"],
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.0.4"
+  }
 }
