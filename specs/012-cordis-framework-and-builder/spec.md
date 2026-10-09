@@ -8,25 +8,6 @@
 3. Define the extraction seam as an interface list first, and lift only what the list names. Leave the desktop behind.
 4. Keep removing libraries that duplicate a Cordis capability.
 
-## Amendment (owner, 2026-10-07): Deno is the runtime
-
-AIMBRACE moves from Node to Deno (latest stable, 2.9.7), Deno only, no dual support. Reasons, each tested on Deno
-2.7.14 and 2.9.7 before the decision:
-
-- the agent template runs unchanged on `npm:@deepseek-ai/cordis` 4.0.4: routes, `POST /ask`, clean stop on SIGINT;
-- its tests pass under Deno;
-- it runs with network access limited to `127.0.0.1` and no other permission;
-- a Cordis plugin written in TypeScript runs with no build step, serves with `Deno.serve`, shuts it down on dispose,
-  and type-checks with `deno check`. Services are typed the Cordis way: `declare module '@deepseek-ai/cordis' {
-  interface Context { name: Type } }`, then `ctx.name`.
-
-What it brings: TypeScript without a build, one toolchain (`deno fmt`, `lint`, `check`, `test`) in place of Biome,
-tsdown, TypeScript and Vitest, web-standard `Deno.serve`, and permissions, which confine the builder's agent-written
-plugins. Later, `deno compile` and Deno Desktop (experimental, not used yet).
-
-Not verified: Deno Desktop, celld. Known risk: `cordis-plugin-hmr` uses Node internals; the builder reloads with a
-fresh `import()` instead, and `deno run --watch` covers development.
-
 ## Findings (verified 2026-10-07)
 
 - The Cordis family ACRYL uses is published on npm by DeepSeek, MIT licensed, and depends on nothing from DeepSeek
@@ -60,19 +41,15 @@ providers, tools catalogue).
 
 ## Requirements
 
-- **FR1** Templates and docs use `@deepseek-ai/cordis` 4.0.4, pinned exactly. A generated project imports nothing else
-  at runtime; its `deno.json` maps only `@deepseek-ai/cordis` and, for tests, `@std/assert`.
-- **FR1a** Deno only: templates, CLI, docs examples, tests and scripts are TypeScript run by Deno 2.9.7 with no build.
-  HTTP uses `Deno.serve`. Every task declares the narrowest permissions that work. The repository has no
-  `package.json`, Node lockfile, Biome, tsdown, TypeScript or Vitest configuration.
+- **FR1** Templates and docs use `@deepseek-ai/cordis` 4.0.4, pinned exactly. A generated `package.json` has it as the
+  single runtime dependency.
 - **FR2** The `agent` template is a builder. Its tools: `list_files`, `read_file`, `write_file` (all confined to the
   project's `src/plugins/`), and `mount_plugin`, which imports the file fresh, mounts it on the running app, waits, and
   returns `{ state: 'active' | 'pending' | 'failed', missing?, error? }`.
 - **FR3** On start, the app mounts every `src/plugins/*.mjs` it finds, so plugins the builder wrote survive a restart.
 - **FR4** The default model stays deterministic and offline, scripted to build and mount a plugin, so the builder is
   tested end to end without a network. A real model is a plugin that calls an OpenAI-compatible endpoint with `fetch`,
-  configured by environment variables, enabled by the user; no vendor SDK. Builder tasks grant write access to
-  `src/plugins/` only.
+  configured by environment variables, enabled by the user; no vendor SDK.
 - **FR5** No dependency that duplicates a Cordis capability, in templates or in the repository.
 
 ## Acceptance

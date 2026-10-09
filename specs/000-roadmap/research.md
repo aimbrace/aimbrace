@@ -31,11 +31,3 @@ ACRYL runs on DeepSeek's Cordis fork, published on npm under MIT: `@deepseek-ai/
 hot reload available when needed, and needs no copied source. Switching from the public `cordis@4.0.0-rc.10` changed
 only the import name: both templates, the CLI tests and the six docs examples pass unchanged. Fallback if a package is
 withdrawn or must change: copy its source from `deepseek-harness/vendor/` with its MIT notice.
-
-## R3. Deno is the runtime (2026-10-07)
-
-Tested before deciding, on Deno 2.7.14 and 2.9.7: the agent template unchanged on `npm:@deepseek-ai/cordis` (routes,
-`/ask`, clean SIGINT stop), its tests, a run with network limited to `127.0.0.1` and nothing else, and a TypeScript
-Cordis plugin on `Deno.serve` with no build that passes `deno check`. Typed services use module augmentation of
-`Context` and `ctx.name`; `ctx.get(name)` returns `T | undefined`. Not verified: Deno Desktop, celld. Risk:
-`cordis-plugin-hmr` relies on Node internals.

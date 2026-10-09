@@ -11,14 +11,6 @@ A task closes when its evidence is on `main`.
 - [x] T123 Verify script and CLI test enforce `@deepseek-ai/cordis` as the only runtime dependency. Evidence: verify `OK`.
 - [x] T124 Constitution 3.1.0. Gate green. Evidence: gate exit 0.
 
-## Phase 1b (Deno)
-
-- [ ] T131 Constitution 4.0.0: Deno is the runtime.
-- [ ] T132 Templates in TypeScript on Deno: typed services, `Deno.serve`, `Deno.test`, least-privilege tasks.
-- [ ] T133 CLI on Deno.
-- [ ] T134 Root `deno.json`, docs test and verify script on Deno; Node tooling removed.
-- [ ] T135 CI on Deno 2.9.7. `deno task check` green.
-
 ## Phase 2
 
 - [ ] T125 `workspace` service and file tools, confined to `src/plugins/`.
