@@ -79,7 +79,8 @@ export type InstallResult =
     }
   | {
       readonly ok: false
-      readonly stage: 'check' | 'import' | 'activate'
+      /** check: before anything changed; import: loading the code; activate: starting it; verify: its own `check` failed. */
+      readonly stage: 'check' | 'import' | 'activate' | 'verify'
       readonly name?: string
       readonly errors: readonly string[]
       /** Present for an update: whether the version that was running is running again. */
@@ -103,6 +104,8 @@ interface PluginModule {
   readonly name?: unknown
   readonly inject?: unknown
   readonly apply: (...args: unknown[]) => unknown
+  /** Optional self-check, run after the plugin starts: it throws (or rejects) when the plugin does not work. */
+  readonly check?: (ctx: Context) => unknown
 }
 
 interface Installed {
@@ -136,6 +139,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 export const NAME = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+const CHECK_TIMEOUT_MS = 10_000
 const ENTRIES = ['index.ts', 'index.js', 'index.mjs']
 const KEPT =
   'The version that was running is still running. Fix the error above, then install again.'
@@ -340,6 +344,28 @@ export class Extensions extends Service {
     return injected(module).filter((service) => this.ctx.get(service) === undefined)
   }
 
+  /** Run the extension's own `check`, if it has one, with a time limit. Returns the failure, or `undefined` when it passes. */
+  private async verify(
+    module: PluginModule,
+  ): Promise<{ stage: 'verify'; error: string } | undefined> {
+    if (typeof module.check !== 'function') return undefined
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const limit = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`its check did not finish within ${CHECK_TIMEOUT_MS} ms`)),
+          CHECK_TIMEOUT_MS,
+        )
+      })
+      await Promise.race([Promise.resolve(module.check(this.ctx)), limit])
+      return undefined
+    } catch (error) {
+      return { stage: 'verify', error: `its check failed: ${message(error)}` }
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   /** Mount a module as a child fiber and wait until it settles. */
   private async mount(module: PluginModule): Promise<{ fiber: Fiber; error?: unknown }> {
     // An extension is a plugin module whose config, if any, comes from its own defaults.
@@ -404,10 +430,20 @@ export class Extensions extends Service {
     if (previous) await previous.fiber.dispose()
     const mounted = await this.mount(module)
     const state = STATES[mounted.fiber.state] ?? 'failed'
-    if (mounted.error !== undefined || state === 'failed') {
+    // Commit before "done": a plugin that started still has to pass its own check before the install counts.
+    const failure =
+      mounted.error !== undefined || state === 'failed'
+        ? {
+            stage: 'activate' as const,
+            error: message(mounted.error ?? 'the plugin failed to start'),
+          }
+        : state === 'active'
+          ? await this.verify(module)
+          : undefined
+    if (failure) {
       await mounted.fiber.dispose().catch(() => undefined)
       rmSync(staged.dir, { recursive: true, force: true })
-      const error = message(mounted.error ?? 'the plugin failed to start')
+      const error = failure.error
       this.record({ kind: 'refused', name, version: staged.version, error })
       let restored = false
       if (previous) {
@@ -424,7 +460,7 @@ export class Extensions extends Service {
       }
       return {
         ok: false,
-        stage: 'activate',
+        stage: failure.stage,
         name,
         errors: [error],
         ...(previous ? { restoredPrevious: restored } : {}),

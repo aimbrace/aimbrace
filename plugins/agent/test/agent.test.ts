@@ -68,3 +68,37 @@ test('a run that never finishes stops at its budget', async () => {
   const result = await root.agent.run('loop')
   assert.deepEqual([result.status, result.steps, result.trace.length], ['budget_exceeded', 3, 3])
 })
+
+test('with tasks mounted, a run is a durable task that owns one task per tool call', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const { instance, pinnedInstance } = await import('../../instance/index.ts')
+  const { tasks } = await import('../../tasks/index.ts')
+  const home = mkdtempSync(join(tmpdir(), 'agent-tasks-'))
+  const root = new Context()
+  for (const [plugin, config] of [
+    [instance, pinnedInstance(home)],
+    [tasks],
+    [model],
+    [tools],
+    [memory],
+    [agent],
+  ] as const) {
+    await root.plugin(plugin as never, config as never).await()
+  }
+  const result = await root.agent.run('add 2 3')
+  assert.equal(typeof result.task, 'string')
+  const run = root.tasks.get(result.task as string)
+  assert.deepEqual(
+    [run?.kind, run?.status, run?.result],
+    ['agent-run', 'completed', 'The answer is 5.'],
+  )
+  assert.deepEqual(
+    root.tasks
+      .list({ parent: result.task as string })
+      .map((call) => [call.kind, call.status, call.result]),
+    [['tool:add', 'completed', 5]],
+  )
+  rmSync(home, { recursive: true, force: true })
+})

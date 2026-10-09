@@ -163,6 +163,13 @@ try {
         child = start()
         url = await waitForUrl(child)
         expect(await hello(), 'Bonjour', 'GET /hello after a restart')
+        const records = await json(await fetch(`${url}/tasks`), 'agent: GET /tasks')
+        const runs = records.filter((record) => record.kind === 'agent-run')
+        if (runs.length < 5 || records.some((record) => record.status === 'running')) {
+          fail(
+            `agent: task records after a restart: ${JSON.stringify(records.map((record) => [record.kind, record.status]))}`,
+          )
+        }
         expect(await ask('remove plugin hello'), 'hello: done.', 'remove')
         expect(await hello(), 404, 'GET /hello after remove')
         log('agent: the plugin type-checks with the app, survives a restart, and is removed live')

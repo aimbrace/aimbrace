@@ -15,17 +15,23 @@ const PATH = /^\/[a-z0-9/-]*$/
 export function routeSource(name: string, path: string, text: string): string {
   return `import type { Context } from '@deepseek-ai/cordis'
 
-/** Written by the builder: answers GET ${path}. */
+/** Written by the builder: answers GET ${path}, and checks that it does before the install counts. */
 export const name = '${name}'
 export const inject = ['http']
 
 interface Http {
   route(method: string, path: string, handler: () => { body: unknown }): () => void
+  handle(request: { method: string; path: string; body: unknown }): Promise<{ status: number; body: unknown }>
 }
 
 export function apply(ctx: Context) {
   const http = ctx.get('http') as Http
   ctx.effect(() => http.route('GET', ${JSON.stringify(path)}, () => ({ body: { text: ${JSON.stringify(text)} } })))
+}
+
+export async function check(ctx: Context) {
+  const reply = await (ctx.get('http') as Http).handle({ method: 'GET', path: ${JSON.stringify(path)}, body: undefined })
+  if (reply.status !== 200) throw new Error(\`GET ${path} answered \${reply.status}\`)
 }
 `
 }

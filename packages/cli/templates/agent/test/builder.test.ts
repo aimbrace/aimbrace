@@ -41,6 +41,21 @@ test('the agent builds, updates, protects and removes a plugin in the running ap
 
     assert.equal(await ask('remove plugin hello'), 'hello: done.')
     assert.equal(await hello(), 404)
+
+    // Every run is a durable task that owns its tool calls, and the records survived the restart.
+    const records = (await (await fetch(`${app.url}/tasks`)).json()) as Array<{
+      kind: string
+      status: string
+      parent?: string
+    }>
+    const runs = records.filter((record) => record.kind === 'agent-run')
+    assert.equal(runs.length, 5)
+    assert.ok(runs.every((run) => run.status === 'completed'))
+    assert.ok(
+      records.some(
+        (record) => record.kind === 'tool:install_plugin' && record.parent !== undefined,
+      ),
+    )
   } finally {
     await app.stop()
     await rm(project, { recursive: true, force: true })

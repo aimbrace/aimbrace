@@ -11,19 +11,12 @@ export interface ToolCall {
   readonly error?: string
 }
 
-/** How a run ended, with every tool call it made. */
-export type RunResult =
-  | {
-      readonly status: 'completed'
-      readonly output: string
-      readonly steps: number
-      readonly trace: readonly ToolCall[]
-    }
-  | {
-      readonly status: 'budget_exceeded'
-      readonly steps: number
-      readonly trace: readonly ToolCall[]
-    }
+/** How a run ended, with every tool call it made. `task` is its durable record's id when the app records tasks. */
+export type RunResult = (
+  | { readonly status: 'completed'; readonly output: string }
+  | { readonly status: 'budget_exceeded' }
+  | { readonly status: 'cancelled' }
+) & { readonly steps: number; readonly trace: readonly ToolCall[]; readonly task?: string }
 
 export interface Agent {
   run(question: string): Promise<RunResult>
@@ -40,6 +33,24 @@ export interface AgentConfig {
   steps?: number
 }
 
+/**
+ * The part of a task recorder the agent uses. Optional: when an app mounts the `tasks` plugin, each run is a durable task and each
+ * tool call a task it owns; without it, runs work the same and leave no record.
+ */
+interface TaskRecorder {
+  start(
+    kind: string,
+    input: unknown,
+    options?: { parent?: string },
+  ): {
+    readonly id: string
+    readonly signal: AbortSignal
+    progress(detail: unknown): void
+    complete(result: unknown, detail?: unknown): void
+    fail(error: unknown, detail?: unknown): void
+  }
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     agent: Agent
@@ -47,9 +58,12 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
 /**
  * The agent. Every run is its own child fiber that holds the run's budget and is disposed when the run ends, however it ends: a
  * scope per task, written with plain Cordis plugins. A tool that throws does not end the run: the model sees the error as the result.
+ * When the app records tasks, the run's record is written before the answer is returned, and cancelling it stops the run.
  */
 export const agent = {
   name: 'agent',
@@ -61,7 +75,10 @@ export const agent = {
       async run(question) {
         runs += 1
         const trace: ToolCall[] = []
-        let result: RunResult = { status: 'budget_exceeded', steps: 0, trace }
+        const recorder = (ctx.get as (name: string) => unknown)('tasks') as TaskRecorder | undefined
+        const record = recorder?.start('agent-run', { question })
+        // Assigned inside the run's fiber; `as` keeps TypeScript from narrowing it to this first value.
+        let result = { status: 'budget_exceeded', steps: 0, trace } as RunResult
         const task = ctx.plugin({
           name: `task-${runs}`,
           inject: ['model', 'tools', 'memory'],
@@ -70,6 +87,10 @@ export const agent = {
             const budget = scope.budget
             let toolResult: unknown
             while (budget.steps < budget.limit) {
+              if (record?.signal.aborted) {
+                result = { status: 'cancelled', steps: budget.steps, trace }
+                return
+              }
               const step = await scope.model.complete({ question, step: budget.steps, toolResult })
               budget.steps += 1
               if (step.tool === undefined) {
@@ -77,27 +98,36 @@ export const agent = {
                 result = { status: 'completed', output: step.text, steps: budget.steps, trace }
                 return
               }
+              const call = record
+                ? recorder?.start(`tool:${step.tool}`, step.input, { parent: record.id })
+                : undefined
               try {
                 toolResult = await scope.tools.call(step.tool, step.input)
                 trace.push({ tool: step.tool, input: step.input, result: toolResult })
+                call?.complete(toolResult)
               } catch (error) {
-                toolResult = { error: error instanceof Error ? error.message : String(error) }
-                trace.push({
-                  tool: step.tool,
-                  input: step.input,
-                  error: (toolResult as { error: string }).error,
-                })
+                toolResult = { error: message(error) }
+                trace.push({ tool: step.tool, input: step.input, error: message(error) })
+                call?.fail(error)
               }
+              record?.progress({ steps: budget.steps, trace })
             }
             result = { status: 'budget_exceeded', steps: budget.steps, trace }
           },
         })
         try {
           await task.await()
+        } catch (error) {
+          record?.fail(error, { trace })
+          throw error
         } finally {
           await task.dispose()
         }
-        return result
+        if (result.status === 'completed')
+          record?.complete(result.output, { steps: result.steps, trace })
+        else if (result.status === 'budget_exceeded')
+          record?.fail('the run used its whole step budget', { steps: result.steps, trace })
+        return record ? { ...result, task: record.id } : result
       },
     } satisfies Agent)
   },

@@ -25,6 +25,7 @@ Ask the agent to build something (the scripted model knows these commands; a rea
 curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"create route hello /hello Hello"}'
 curl <url>/hello              # {"text":"Hello"}
 curl <url>/extensions         # what is installed, and its state
+curl <url>/tasks              # every run as a durable task, with the tool calls it owns
 ```
 
 Other commands: `update route <name> <path> <text>`, `break plugin <name>` (shows the rollback), `remove plugin <name>`,

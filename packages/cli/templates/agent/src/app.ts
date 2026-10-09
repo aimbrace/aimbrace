@@ -6,6 +6,7 @@ import { extensions } from './plugins/extensions/index.ts'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
 import { server } from './plugins/server/index.ts'
+import { tasks } from './plugins/tasks/index.ts'
 import { routes } from './routes.ts'
 
 export interface App {
@@ -27,6 +28,7 @@ export async function createApp(
   const extensionsDir = join(chosen.root, 'extensions')
   const fibers = [
     root.plugin(instance, chosen),
+    root.plugin(tasks),
     root.plugin(model),
     root.plugin(tools),
     root.plugin(memory),

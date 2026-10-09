@@ -2,6 +2,8 @@
   "name": "builder",
   "description": "The agent's tools for building the app it runs in: write, install, read, list and remove extensions, with real results.",
   "requires": ["agent", "extensions"],
-  "dependencies": { "@deepseek-ai/cordis": "4.0.4" },
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.0.4"
+  },
   "mount": "mount it after agent and extensions: root.plugin(builder, { dir: join(root, 'extensions') }); dir must be an extensions source"
 }

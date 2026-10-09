@@ -21,8 +21,11 @@ A task closes when its evidence is on `main`.
   `read_plugin`, `list_plugins`, `remove_plugin`. Evidence: 7 agent and builder tests; verify, against `npm start`:
   create, update, a broken update that keeps the old version, type check of the agent's code with the app, restart,
   removal.
-- [ ] T205a P4b (from the pi.dev and Pi Durable comparison): durable task records and a self-check before an extension
-  counts as live. See spec, "Ideas from Pi Durable".
+- [x] T205a P4b (from the Pi Durable comparison): `tasks` plugin (durable records appended before the call returns,
+  ownership and cancellation, `interrupted` after a crash, never re-run); agent runs are tasks owning one task per tool
+  call; an extension's own `check` must pass before an install counts (stage `verify`, rollback like a failed start);
+  the builder's route plugins check their own route; `GET /tasks`, `POST /tasks/cancel`. Evidence: 4 task tests, 1 new
+  agent test, 1 new extensions test; verify reads the task records back after a restart.
 - [ ] T206 P5: manifest.
 - [ ] T207 P6: save.
 - [ ] T208 P7: docs.

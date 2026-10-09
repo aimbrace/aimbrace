@@ -191,3 +191,27 @@ test('disposing the plugin disposes every extension it mounted', async () => {
   await stop()
   assert.equal(root.get('greeting'), undefined)
 })
+
+test('an extension whose own check fails does not count as installed, and the previous version comes back', async () => {
+  const { root, folder } = await boot()
+  await root.extensions.install(writeGreeter(folder, 'hello'))
+  const dir = join(folder, 'greeter')
+  writeFileSync(
+    join(dir, 'index.ts'),
+    "export const name = 'greeter'\nexport function apply(ctx: any) { ctx.provide('greeting', 'wrong') }\nexport function check(ctx: any) { if (ctx.get('greeting') !== 'right') throw new Error('greeting is not right') }\n",
+  )
+  const result = await root.extensions.install(dir)
+  assert.equal(!result.ok && result.stage, 'verify')
+  assert.match(
+    !result.ok ? (result.errors[0] ?? '') : '',
+    /its check failed: greeting is not right/,
+  )
+  assert.equal(!result.ok && result.restoredPrevious, true)
+  assert.equal(root.get('greeting'), 'hello')
+  writeFileSync(
+    join(dir, 'index.ts'),
+    "export const name = 'greeter'\nexport function apply(ctx: any) { ctx.provide('greeting', 'right') }\nexport function check(ctx: any) { if (ctx.get('greeting') !== 'right') throw new Error('greeting is not right') }\n",
+  )
+  const passing = await root.extensions.install(dir)
+  assert.deepEqual(passing.ok && [passing.action, passing.state], ['updated', 'active'])
+})
