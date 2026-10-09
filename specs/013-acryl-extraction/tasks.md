@@ -31,5 +31,7 @@ A task closes when its evidence is on `main`.
   lock` (manifest digest, rows, values, a digest per plugin folder). Both templates compose from it. A `digest` plugin
   holds the one folder-digest definition that staging and the lock share. Evidence: 5 manifest tests, 1 digest test,
   1 template test; verify runs `npm run lock` in both apps.
-- [ ] T207 P6: save.
+- [x] T207 P6: save, ported from `app-persistence`: the use case over git and hosting ports, the secret scan, private apps
+  never pushed to a public remote, `npm run save`, a `save_app` tool for the agent. Evidence: 4 tests (one on a real git
+  repository); verify saves a scaffolded app, then refuses a file holding an AWS key with nothing left staged.
 - [ ] T208 P7: docs.

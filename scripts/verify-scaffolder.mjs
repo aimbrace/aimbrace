@@ -10,8 +10,8 @@
  *
  * Needs the network for the install step. Fails on the first problem.
  */
-import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -189,6 +189,28 @@ try {
     rmSync(home, { recursive: true, force: true })
     log(`${template}: stopped cleanly; data stayed in the pinned home`)
   }
+  // npm run save in a real app: a first save commits; a file that holds a secret is refused and nothing is staged.
+  const saved = join(scratch, 'app')
+  for (const args of [
+    ['init', '--quiet'],
+    ['config', 'user.email', 'verify@example.com'],
+    ['config', 'user.name', 'Verify'],
+  ]) {
+    capture('git', args, { cwd: saved })
+  }
+  const first = capture(npm, ['run', '--silent', 'save', '--', 'first save'], { cwd: saved })
+  if (!/^saved [0-9a-f]{12}/m.test(first)) fail(`npm run save: ${first}`)
+  writeFileSync(join(saved, 'leak.ts'), 'export const key = "AKIAABCDEFGHIJKLMNOP"\n')
+  const leak = spawnSync(npm, ['run', '--silent', 'save', '--', 'leak'], {
+    cwd: saved,
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  })
+  if (leak.status === 0 || !/AWS access key/.test(leak.stderr))
+    fail(`npm run save did not refuse a secret: ${leak.stdout}${leak.stderr}`)
+  if (capture('git', ['diff', '--cached', '--name-only'], { cwd: saved }).trim() !== '')
+    fail('npm run save left files staged after refusing')
+  log('save: committed the app, then refused a file holding a secret with nothing left staged')
   // `aimbrace add` in a real app: the plugin, what it requires and its npm packages arrive, and the app still type-checks.
   const grown = join(scratch, 'grown')
   capture(process.execPath, [cli, 'init', grown, '--name', 'verify-grown', '--yes', '--no-agent'])

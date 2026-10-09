@@ -1,0 +1,7 @@
+{
+  "name": "save",
+  "description": "Save the app to its own git repository: refuses a file that holds a secret, and a private app going to a public remote.",
+  "requires": [],
+  "dependencies": { "@deepseek-ai/cordis": "4.0.4", "yaml": "2.9.0" },
+  "mount": "add a script \"save\": \"node src/plugins/save/cli.ts\" to package.json; mount the plugin to give the agent a save_app tool"
+}

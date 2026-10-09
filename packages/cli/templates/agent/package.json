@@ -11,7 +11,8 @@
     "dev": "node --watch src/main.ts",
     "test": "node --test",
     "check": "tsc --noEmit",
-    "lock": "node src/plugins/manifest/lock.ts"
+    "lock": "node src/plugins/manifest/lock.ts",
+    "save": "node src/plugins/save/cli.ts"
   },
   "dependencies": {},
   "devDependencies": {

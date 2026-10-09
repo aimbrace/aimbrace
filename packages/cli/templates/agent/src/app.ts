@@ -7,6 +7,7 @@ import { extensions } from './plugins/extensions/index.ts'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
 import { compose, loadManifest, type ParameterValue } from './plugins/manifest/index.ts'
+import { save } from './plugins/save/index.ts'
 import { server } from './plugins/server/index.ts'
 import { tasks } from './plugins/tasks/index.ts'
 import { routes } from './routes.ts'
@@ -21,6 +22,7 @@ export const registry = {
   http,
   extensions,
   builder,
+  save,
   routes,
   server,
 }

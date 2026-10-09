@@ -19,4 +19,8 @@ npm run check      # type-check
 - `src/plugins/` holds the plugins copied from the AIMBRACE library. They are yours now; edit them freely.
   Add more with `aimbrace add <plugin>`.
 
+`npm run save -- "message"` commits the app with git (and pushes when it has a remote). It refuses a file that looks like
+it holds a secret, and refuses to push a private app (anything but `visibility: public` in `aimbrace.yaml`) to a public
+remote.
+
 Set `AIMBRACE_HOME` to keep data elsewhere, and `AIMBRACE_PORT` to choose the first port tried.

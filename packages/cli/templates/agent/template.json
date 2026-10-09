@@ -1,1 +1,13 @@
-{ "plugins": ["instance", "http", "server", "tasks", "agent", "extensions", "builder", "manifest"] }
+{
+  "plugins": [
+    "instance",
+    "http",
+    "server",
+    "tasks",
+    "agent",
+    "extensions",
+    "builder",
+    "manifest",
+    "save"
+  ]
+}
