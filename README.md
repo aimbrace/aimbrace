@@ -42,6 +42,7 @@ time on `@deepseek-ai/cordis` and `yaml`.
 | `docs/` | the documentation; its examples are executed by the tests |
 | `specs/` | specs and ledgers ([roadmap](specs/000-roadmap/spec.md), [013](specs/013-acryl-extraction/spec.md)) |
 
+`pnpm run verify:model` (opt-in, needs `AIMBRACE_MODEL_URL`, `AIMBRACE_MODEL` and a key) proves the agent builds a plugin with a real model.
 `pnpm run check` runs lint, build, both type checks, the tests and the scaffolder verification. A Deno version of the
 runtime lives on the branch `012-deno-runtime-experiment`.
 
