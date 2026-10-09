@@ -1,0 +1,26 @@
+{
+  "name": "aimbrace-monorepo",
+  "private": true,
+  "type": "module",
+  "description": "AIMBRACE - scaffold apps built on Cordis. Cordis is the framework.",
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "verify:scaffolder": "node scripts/verify-scaffolder.mjs",
+    "check": "pnpm run lint && pnpm run build && pnpm run typecheck && pnpm run test && pnpm run verify:scaffolder"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "^24.0.0",
+    "tsdown": "0.23.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

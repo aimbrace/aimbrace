@@ -1,32 +1,39 @@
-/** Everything the CLI touches besides the files it copies. Tests pass their own. */
+import { spawn } from 'node:child_process'
+import { createInterface } from 'node:readline/promises'
+
+/** Everything the CLI touches outside the filesystem. Tests pass their own. */
 export interface Io {
-  stdout(text: string): void
-  stderr(text: string): void
+  stdout: { write(text: string): unknown }
+  stderr: { write(text: string): unknown }
   cwd: string
   /** Ask one question; `undefined` when there is no terminal to ask on. */
-  ask: ((question: string) => string) | undefined
-  /** Fetch the project's dependencies; resolves to the exit code. */
+  ask: ((question: string) => Promise<string>) | undefined
+  /** Install dependencies in a directory; resolves to the exit code. */
   install(directory: string): Promise<number>
 }
 
-const encoder = new TextEncoder()
-
-/** The real terminal, and `deno install` for dependencies. */
+/** The real terminal and `pnpm install`. */
 export function processIo(): Io {
-  const interactive = Deno.stdin.isTerminal() && Deno.stdout.isTerminal()
+  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
   return {
-    stdout: (text) => void Deno.stdout.writeSync(encoder.encode(text)),
-    stderr: (text) => void Deno.stderr.writeSync(encoder.encode(text)),
-    cwd: Deno.cwd(),
-    ask: interactive ? (question) => prompt(question) ?? '' : undefined,
-    async install(directory) {
-      const { code } = await new Deno.Command(Deno.execPath(), {
-        args: ['install'],
-        cwd: directory,
-        stdout: 'inherit',
-        stderr: 'inherit',
-      }).output()
-      return code
-    },
+    stdout: process.stdout,
+    stderr: process.stderr,
+    cwd: process.cwd(),
+    ask: interactive
+      ? async (question) => {
+          const rl = createInterface({ input: process.stdin, output: process.stdout })
+          try {
+            return await rl.question(question)
+          } finally {
+            rl.close()
+          }
+        }
+      : undefined,
+    install: (directory) =>
+      new Promise((done) => {
+        const child = spawn('pnpm', ['install'], { cwd: directory, stdio: 'inherit' })
+        child.on('error', () => done(1))
+        child.on('exit', (code) => done(code ?? 1))
+      }),
   }
 }

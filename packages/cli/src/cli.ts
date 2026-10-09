@@ -1,11 +1,13 @@
-import manifest from '../deno.json' with { type: 'json' }
-import { init, parseInitOptions, UsageError } from './init.ts'
-import { type Io, processIo } from './io.ts'
+import { createRequire } from 'node:module'
+import { init, parseInitOptions, UsageError } from './init'
+import { type Io, processIo } from './io'
 
 /** The version of this package. */
-export const VERSION: string = manifest.version
+export const VERSION: string = (
+  createRequire(import.meta.url)('../package.json') as { version: string }
+).version
 
-export const HELP = `aimbrace ${VERSION} - scaffold Cordis apps on Deno
+export const HELP = `aimbrace ${VERSION} - scaffold Cordis apps
 
 Usage:
   aimbrace init [dir] [options]   Create a Cordis app in an empty or new directory
@@ -13,33 +15,35 @@ Usage:
 Options for init:
   --agent / --no-agent   include the offline agent (asked when not given)
   --name <name>          the project name (default: the directory name)
-  --install              run deno install after copying
+  --install              run pnpm install after copying
   -y, --yes              ask nothing; use defaults (no agent, no install)
 
   -h, --help             show this help
   -v, --version          show the version
 `
 
-/** Run the CLI and return the exit code: 0 done, 1 failed or refused, 2 a usage error. */
+/**
+ * Run the CLI and return the exit code: 0 done, 1 failed or refused, 2 a usage error. Never calls `process.exit`.
+ */
 export async function runCli(argv: readonly string[], io: Io = processIo()): Promise<number> {
   const [command, ...args] = argv
   try {
-    if (command === undefined || ['help', '-h', '--help'].includes(command)) {
-      io.stdout(HELP)
+    if (command === undefined || command === 'help' || command === '-h' || command === '--help') {
+      io.stdout.write(HELP)
       return command === undefined ? 2 : 0
     }
-    if (['version', '-v', '--version'].includes(command)) {
-      io.stdout(`${VERSION}\n`)
+    if (command === 'version' || command === '-v' || command === '--version') {
+      io.stdout.write(`${VERSION}\n`)
       return 0
     }
     if (command === 'init') return await init(parseInitOptions(args), io)
     throw new UsageError(`unknown command "${command}"`)
   } catch (error) {
     if (error instanceof UsageError) {
-      io.stderr(`error: ${error.message}\n\n${HELP}`)
+      io.stderr.write(`error: ${error.message}\n\n${HELP}`)
       return 2
     }
-    io.stderr(`error: ${error instanceof Error ? error.message : String(error)}\n`)
+    io.stderr.write(`error: ${error instanceof Error ? error.message : String(error)}\n`)
     return 1
   }
 }
