@@ -12,6 +12,15 @@ export interface ModelInput {
   readonly step: number
   /** The previous tool's result, if the previous step called one. */
   readonly toolResult?: unknown
+  /** Every tool call of this run so far, in order: a real model rebuilds the conversation from it. */
+  readonly trace?: ReadonlyArray<{
+    readonly tool: string
+    readonly input: unknown
+    readonly result?: unknown
+    readonly error?: string
+  }>
+  /** The tools the model may call. */
+  readonly tools?: ReadonlyArray<{ readonly name: string; readonly description: string }>
 }
 
 /** What the agent needs from a model. Replace this plugin with a real provider when you have one. */

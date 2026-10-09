@@ -91,7 +91,13 @@ export const agent = {
                 result = { status: 'cancelled', steps: budget.steps, trace }
                 return
               }
-              const step = await scope.model.complete({ question, step: budget.steps, toolResult })
+              const step = await scope.model.complete({
+                question,
+                step: budget.steps,
+                toolResult,
+                trace: [...trace],
+                tools: scope.tools.list(),
+              })
               budget.steps += 1
               if (step.tool === undefined) {
                 scope.memory.remember(`${question} => ${step.text}`)

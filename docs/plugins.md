@@ -12,6 +12,7 @@ against a real Cordis context, including disposal.
 | [extensions](#extensions) | `extensions` | `plugins/acryl-extension-context` |
 | [builder](#builder) | tools for the agent | the agent's install tools |
 | [agent](#agent) | `agent`, `model`, `tools`, `memory` | - |
+| [openai](#openai) | `model` (a real one) | - |
 | [tasks](#tasks) | `tasks` | idea from Pi Durable |
 | [manifest](#manifest) | functions, no service | `runtime/blends-core` |
 | [save](#save) | a tool for the agent | `runtime/app-persistence` |
@@ -57,6 +58,13 @@ teaches the scripted model commands (`create route <name> <path> <text>`, `updat
 with a step budget (`{ steps }`), and returns the answer with a trace of every tool call. A failing tool is reported to
 the model, not thrown. Replace `model` with a real provider: it only has to implement `complete({ question, step,
 toolResult })`.
+
+## openai
+
+A real model for the agent: any OpenAI-compatible chat API (OpenAI, DeepSeek, Ollama, LM Studio) over `fetch`, with tool
+calls, and no SDK. It provides the same `model` service, so nothing else changes. Its system prompt teaches the model the
+extension contract. In the `agent` template, set `AIMBRACE_MODEL_URL`, `AIMBRACE_MODEL` and (for hosted APIs)
+`AIMBRACE_MODEL_KEY`; `main.ts` reads them and swaps the scripted model for this one.
 
 ## tasks
 

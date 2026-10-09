@@ -7,6 +7,7 @@ import { extensions } from './plugins/extensions/index.ts'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
 import { compose, loadManifest, type ParameterValue } from './plugins/manifest/index.ts'
+import { type OpenAIConfig, openai } from './plugins/openai/index.ts'
 import { save } from './plugins/save/index.ts'
 import { server } from './plugins/server/index.ts'
 import { tasks } from './plugins/tasks/index.ts'
@@ -42,7 +43,11 @@ export interface App {
  */
 export async function createApp(
   chosen: AppInstance,
-  options: { values?: Readonly<Record<string, ParameterValue>> } = {},
+  options: {
+    values?: Readonly<Record<string, ParameterValue>>
+    /** A real model (any OpenAI-compatible API) in place of the offline scripted one. */
+    model?: OpenAIConfig
+  } = {},
 ): Promise<App> {
   const manifest = loadManifest(MANIFEST, {
     known: Object.keys(registry),
@@ -54,7 +59,9 @@ export async function createApp(
   await first.await()
   const fibers: Fiber[] = [
     first,
-    ...(await compose(root, manifest, registry, {
+    // The `model` row mounts the scripted model, or the real one when a model is configured.
+    ...(await compose(root, manifest, options.model ? { ...registry, model: openai } : registry, {
+      ...(options.model ? { model: { ...options.model } } : {}),
       extensions: { sources: [{ dir: extensionsDir, trust: 'install' }] },
       builder: { dir: extensionsDir },
       server: { port: chosen.port.start, scan: chosen.port.scan },

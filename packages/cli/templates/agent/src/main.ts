@@ -1,15 +1,20 @@
 import { fileURLToPath } from 'node:url'
 import { createApp } from './app.ts'
 import { selectInstance } from './plugins/instance/index.ts'
+import { modelConfigFrom } from './plugins/openai/index.ts'
 import { APP_NAME } from './routes.ts'
 
-// The composition root: the one place that reads the environment (through selectInstance) and chooses where the app lives.
+// The composition root: the one place that reads the environment. selectInstance chooses where the app lives;
+// modelConfigFrom picks a real model when AIMBRACE_MODEL_URL and AIMBRACE_MODEL are set (AIMBRACE_MODEL_KEY for hosted APIs).
 const chosen = selectInstance({
   projectRoot: fileURLToPath(new URL('..', import.meta.url)),
   env: process.env,
 })
-const app = await createApp(chosen)
-console.log(`${APP_NAME} listening on ${app.url} (data in ${chosen.home})`)
+const model = modelConfigFrom(process.env)
+const app = await createApp(chosen, model ? { model } : {})
+console.log(
+  `${APP_NAME} listening on ${app.url} (data in ${chosen.home}; model: ${model ? `${model.model} at ${model.baseUrl}` : 'offline scripted'})`,
+)
 
 const stop = async () => {
   await app.stop()

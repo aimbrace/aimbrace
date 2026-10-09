@@ -5,6 +5,7 @@
     "server",
     "tasks",
     "agent",
+    "openai",
     "extensions",
     "builder",
     "manifest",

@@ -33,7 +33,14 @@ curl <url>/hello            # {"text":"Hello"}
 curl <url>/tasks            # the run, as a durable task that owns its tool calls
 ```
 
-The agent wrote a Cordis plugin into `extensions/hello/`, installed it into the running app, and checked that its route
+Give it a real model (any OpenAI-compatible API) and describe what you want instead:
+
+```sh
+AIMBRACE_MODEL_URL=http://127.0.0.1:11434/v1 AIMBRACE_MODEL=qwen2.5-coder npm run dev    # or a hosted API with AIMBRACE_MODEL_KEY
+curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"add a GET /time route that returns the time"}'
+```
+
+Either way the agent wrote a Cordis plugin into `extensions/hello/`, installed it into the running app, and checked that its route
 answers before reporting it live. See [Extending a running app](extending-apps.md).
 
 ## Add plugins

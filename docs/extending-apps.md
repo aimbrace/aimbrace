@@ -63,6 +63,8 @@ committed with it, type-checked with `npm run check`.
 ## The builder
 
 The `builder` plugin gives the agent `write_plugin`, `install_plugin`, `read_plugin`, `list_plugins` and `remove_plugin`.
+With a real model (the `openai` plugin), the agent builds any plugin you describe: `POST /ask {"question": "add a GET
+/time route"}` makes it write the plugin, install it, read the result and fix it until it is active.
 `write_plugin` only writes source files (`.ts`, `.js`, `.mjs`, `.json`, `.md`) inside one plugin folder. A real model
 reads the tool descriptions; the offline scripted model knows these commands:
 

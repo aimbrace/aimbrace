@@ -22,7 +22,15 @@ curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"add 
 - `src/plugins/extensions` installs, updates and removes plugins while the app runs; a failed update keeps the previous
   version running. `src/plugins/builder` gives the agent tools to do that itself, writing into `extensions/`.
 
-Ask the agent to build something (the scripted model knows these commands; a real model reads the tool descriptions):
+Give it a real model and it builds any Cordis plugin you describe (any OpenAI-compatible API; nothing is installed):
+
+```sh
+AIMBRACE_MODEL_URL=https://api.deepseek.com/v1 AIMBRACE_MODEL=deepseek-chat AIMBRACE_MODEL_KEY=sk-... npm run dev
+AIMBRACE_MODEL_URL=http://127.0.0.1:11434/v1 AIMBRACE_MODEL=qwen2.5-coder npm run dev     # Ollama, no key
+curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"add a GET /time route that returns the current time"}'
+```
+
+Without a model it runs offline with a scripted model that knows these commands:
 
 ```sh
 curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"create route hello /hello Hello"}'
