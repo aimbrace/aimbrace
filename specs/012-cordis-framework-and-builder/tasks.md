@@ -1,5 +1,8 @@
 # 012 tasks
 
+> 2026-10-09: Phase 1b (Deno) lives on the branch `012-deno-runtime-experiment`. Phase 2 continues as spec 013
+> (`../013-acryl-extraction/`).
+
 A task closes when its evidence is on `main`.
 
 ## Phase 1

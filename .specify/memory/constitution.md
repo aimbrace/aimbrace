@@ -3,6 +3,9 @@
 This constitution governs every spec, plan, task and package in this repository. If another document conflicts with
 it, this file wins until it is deliberately amended (with a version bump below).
 
+**Version 5.0.0 (amended 2026-10-09).** Version 4 (Deno) lives on the branch `012-deno-runtime-experiment`. 5.0.0
+keeps Node and adds a library of Cordis plugins that the command copies into apps (spec 013).
+
 **Version 3.1.0 (amended 2026-10-07).** 3.1.0 names the Cordis package: the one ACRYL runs on (research R2).
 
 **Version 3.0.0 (amended 2026-10-06).** Version 1 defined AIMBRACE as a composition runtime on Cordis plus five
@@ -17,19 +20,21 @@ Plugins, services, dependencies, lifecycle, cleanup, events and isolation come f
 wrapper, kernel, registry, graph, lifecycle or event layer around it, and never adds a library that duplicates a Cordis
 capability.
 
-### II. The product is a command and its templates
+### II. The product is a command, its templates and a plugin library
 
-The shipped artifact is the `aimbrace` command: `init` copies a template and fills in the project name. There is no
-runtime package for apps to import.
+The `aimbrace` command copies a template, and the library plugins it lists, into an app; `aimbrace add` copies more.
+Library plugins are plain Cordis plugins in `plugins/<name>/`. The app owns every copied line. There is no runtime
+package for apps to import.
 
-### III. Generated projects depend on `@deepseek-ai/cordis` only
+### III. Few, named dependencies
 
-A generated `package.json` has `@deepseek-ai/cordis`, pinned exactly, as its single runtime dependency. HTTP uses `node:http`. A template that needs
-anything else needs a written reason in its spec. The verify script enforces this.
+A generated app depends at run time on `@deepseek-ai/cordis` (pinned exactly) and, only when a copied plugin needs
+them, `@deepseek-ai/schemastery` and `yaml`. Any other dependency needs a written reason in a spec. HTTP uses
+`node:http`. Tests use `node:test`. No dependency may duplicate a Cordis capability.
 
 ### IV. Two templates
 
-`app` and `agent`. A new template needs a written reason in a spec and the name of the real app that asked for it.
+`app` and `agent`, both TypeScript run by Node with no build step. A new template needs a written reason in a spec and the name of the real app that asked for it.
 
 ### V. The verify script is the gate
 
@@ -55,7 +60,8 @@ Ledgers say what is done, blocked and deferred. Docs describe only what the test
 
 ## Engineering rules
 
-- TypeScript (strict, ESM) for the CLI; JavaScript ESM for templates and scripts. Node 22.12 or newer.
+- TypeScript everywhere. Templates and library plugins use erasable syntax only, so Node 22.18 or newer runs them
+  without a build; `tsc --noEmit` checks them. The CLI is built with tsdown.
 - pnpm workspaces, Biome, Vitest.
 - Small, coherent, conventional commits. Never add an AI agent as co-author.
 - Never use the em dash character in code, comments, docs or commit messages.
@@ -66,4 +72,4 @@ Ledgers say what is done, blocked and deferred. Docs describe only what the test
 Amendments need a changed version line, a research note in `specs/000-roadmap/research.md`, and updates to any plan
 they invalidate.
 
-**Version**: 3.1.0 | **Ratified**: 2026-10-06 | **Last Amended**: 2026-10-07
+**Version**: 5.0.0 | **Ratified**: 2026-10-06 | **Last Amended**: 2026-10-09
