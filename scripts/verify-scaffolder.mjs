@@ -141,6 +141,21 @@ try {
     rmSync(home, { recursive: true, force: true })
     log(`${template}: stopped cleanly; data stayed in the pinned home`)
   }
+  // `aimbrace add` in a real app: the plugin, what it requires and its npm packages arrive, and the app still type-checks.
+  const grown = join(scratch, 'grown')
+  capture(process.execPath, [cli, 'init', grown, '--name', 'verify-grown', '--yes', '--no-agent'])
+  capture(process.execPath, [cli, 'add', 'settings', '--dir', grown])
+  const grownDeps = Object.keys(
+    JSON.parse(readFileSync(join(grown, 'package.json'), 'utf8')).dependencies,
+  )
+  for (const name of ['@deepseek-ai/cordis', '@deepseek-ai/schemastery', 'yaml']) {
+    if (!grownDeps.includes(name)) fail(`add settings: ${name} was not added to package.json`)
+  }
+  if (!existsSync(join(grown, 'src', 'plugins', 'settings', 'index.ts')))
+    fail('add settings: the plugin was not copied')
+  capture(npm, ['install', '--no-audit', '--no-fund'], { cwd: grown })
+  capture(npm, ['run', 'check'], { cwd: grown })
+  log('add settings: copied, dependencies added, installed, type-checks')
   log('OK')
 } finally {
   rmSync(scratch, { recursive: true, force: true })
