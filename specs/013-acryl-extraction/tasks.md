@@ -40,6 +40,13 @@ A task closes when its evidence is on `main`.
 - [x] T209 CI green on Node 22 and 24 (`fa4a60e`). It had been red since `611a5d2`: on Linux `/bin/sh` does not pass
   SIGINT to node, so the verify script now interrupts the app's process group, as Ctrl+C does.
 
-Open, recorded (each needs a real app that asks for it): a real model provider plugin; an execution-policy service for
+- [x] T210 A real model: the `openai` plugin (any OpenAI-compatible API over fetch, tool calls, no SDK), swapped in by
+  `AIMBRACE_MODEL_URL`/`AIMBRACE_MODEL`/`AIMBRACE_MODEL_KEY`. Evidence: 3 plugin tests; a template test where a model API
+  writes and installs a plugin no scripted command knows, and the app serves it.
+- [x] T211 Internal and external plugins: `package_plugin` makes an extension a standalone package (Cordis as a peer);
+  `aimbrace add <folder>` brings an external plugin into an app's `extensions/`. Evidence: builder and CLI tests; verify
+  packages the agent's plugin in one app and serves it from a second app.
+
+Open, recorded (each needs a real app that asks for it): an execution-policy service for
 generated code (Gondolin-style isolation); a workflow engine (Absurd-style); the website, which still describes the old
 runtime.

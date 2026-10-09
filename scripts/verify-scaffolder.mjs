@@ -186,6 +186,45 @@ try {
             `agent: task records after a restart: ${JSON.stringify(records.map((record) => [record.kind, record.status]))}`,
           )
         }
+        // Internal to external: the agent packages what it built; a second app takes the package in and serves it.
+        const packaged = await ask('package plugin hello')
+        if (!packaged.startsWith('hello: packaged in ')) fail(`agent: package plugin: ${packaged}`)
+        const other = join(scratch, 'other')
+        capture(process.execPath, [
+          cli,
+          'init',
+          other,
+          '--name',
+          'verify-other',
+          '--yes',
+          '--agent',
+        ])
+        capture(process.execPath, [
+          cli,
+          'add',
+          join(dir, 'plugin-packages', 'hello'),
+          '--dir',
+          other,
+        ])
+        capture(npm, ['install', '--no-audit', '--no-fund'], { cwd: other })
+        const otherHome = mkdtempSync(join(tmpdir(), 'verify-home-other-'))
+        const otherChild = spawn(npm, ['start'], {
+          cwd: other,
+          env: { ...process.env, AIMBRACE_HOME: otherHome, AIMBRACE_PORT: '0' },
+          shell: process.platform === 'win32',
+          detached: process.platform !== 'win32',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        })
+        try {
+          const otherUrl = await waitForUrl(otherChild)
+          const served = await json(await fetch(`${otherUrl}/hello`), 'other app: GET /hello')
+          if (served.text !== 'Bonjour')
+            fail(`other app: GET /hello answered ${JSON.stringify(served)}`)
+        } finally {
+          await stopCleanly(otherChild)
+          rmSync(otherHome, { recursive: true, force: true })
+        }
+        log('agent: packaged its plugin; a second app added the package and serves it')
         expect(await ask('remove plugin hello'), 'hello: done.', 'remove')
         expect(await hello(), 404, 'GET /hello after remove')
         log('agent: the plugin type-checks with the app, survives a restart, and is removed live')

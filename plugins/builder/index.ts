@@ -5,7 +5,7 @@
  * extensions folder, installs it, and gets back the real result (`active`, `pending` with what it waits for, or the error, with the
  * previous version restored). Writes are confined to that folder. The tools register in `ctx.effect`, so they leave with the builder.
  */
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, extname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import { scripted, type Tools } from '../agent/index.ts'
@@ -16,6 +16,24 @@ import { builderRules } from './script.ts'
 export interface BuilderConfig {
   /** Where the agent writes extensions. Defaults to `<project>/extensions`. Must be one of the extensions sources. */
   dir?: string
+  /** Where `package_plugin` writes standalone packages. Defaults to `<project>/plugin-packages`. */
+  packagesDir?: string
+}
+
+/** The package.json of a standalone plugin package: the host framework is a peer, never a second installed copy. */
+export function packageManifest(name: string, description: string): Record<string, unknown> {
+  return {
+    name,
+    version: '0.1.0',
+    description,
+    type: 'module',
+    exports: { '.': './index.ts', './package.json': './package.json' },
+    files: ['*.ts', '**/*.ts', 'README.md'],
+    // ACRYL measured it: a host package listed under dependencies brings a second copy of the framework, and its services stop
+    // matching after a restart. A peer names the version and installs nothing.
+    peerDependencies: { '@deepseek-ai/cordis': '4.0.4' },
+    keywords: ['cordis', 'cordis-plugin', 'aimbrace'],
+  }
 }
 
 const EXTENSIONS = new Set(['.ts', '.js', '.mjs', '.json', '.md'])
@@ -128,6 +146,44 @@ export const builder = {
           rmSync(folder(name), { recursive: true, force: true })
         }
         return result
+      },
+    )
+
+    const packagesDir = resolve(
+      config?.packagesDir ?? join(ctx.appInstance.root, 'plugin-packages'),
+    )
+    register(
+      'package_plugin',
+      'Turn an extension into a standalone plugin package other apps can use: input { name, description? }. Returns its folder.',
+      (input) => {
+        const name = pluginName(input)
+        if (
+          !existsSync(join(folder(name), 'index.ts')) &&
+          !existsSync(join(folder(name), 'index.js'))
+        ) {
+          throw new BuilderError(`${name} has no index.ts in ${folder(name)}; write it first`)
+        }
+        const description = String(
+          (input as { description?: unknown }).description ?? `The ${name} Cordis plugin.`,
+        )
+        const target = join(packagesDir, name)
+        rmSync(target, { recursive: true, force: true })
+        mkdirSync(packagesDir, { recursive: true })
+        cpSync(folder(name), target, {
+          recursive: true,
+          filter: (path) => !path.includes('node_modules'),
+        })
+        writeFileSync(
+          join(target, 'package.json'),
+          `${JSON.stringify(packageManifest(name, description), null, 2)}\n`,
+        )
+        if (!existsSync(join(target, 'README.md'))) {
+          writeFileSync(
+            join(target, 'README.md'),
+            `# ${name}\n\n${description}\n\nA Cordis plugin. In an AIMBRACE app: \`aimbrace add <this folder>\`.\n`,
+          )
+        }
+        return { ok: true, name, dir: target }
       },
     )
 

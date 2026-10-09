@@ -76,6 +76,14 @@ reads the tool descriptions; the offline scripted model knows these commands:
 | `remove plugin <name>` | removes it and deletes its folder |
 | `list plugins` | lists installed extensions and their state |
 
+## Internal and external plugins
+
+A plugin the agent builds lives in the app's own `extensions/` (internal). To share it, ask the agent to package it
+(`package_plugin { name }`, or the scripted command `package plugin <name>`): it becomes a standalone package in
+`plugin-packages/<name>/`, with `@deepseek-ai/cordis` as a peer dependency (never a second installed copy). Any app takes an
+external plugin in with `aimbrace add <folder>`, which copies it into that app's `extensions/`, where it installs at the
+next start through the same checks.
+
 ## What to look at
 
 - `GET /extensions`: what is installed, its state, and folders not installed yet.

@@ -7,6 +7,7 @@
  *   break plugin <name>                     write a version whose apply throws, then try to install it
  *   remove plugin <name>                    remove it and delete its folder
  *   list plugins                            list installed extensions
+ *   package plugin <name>                   make it a standalone package other apps can add
  */
 import type { Rule, Step } from '../agent/index.ts'
 
@@ -101,6 +102,15 @@ export const builderRules: Rule = ({ question, step, toolResult }) => {
     return step === 0
       ? { tool: 'remove_plugin', input: { name, deleteSource: true } }
       : { text: summary(toolResult) }
+  }
+  if (verb === 'package' && noun === 'plugin' && name) {
+    if (step === 0) return { tool: 'package_plugin', input: { name } }
+    const packaged = toolResult as { ok?: boolean; dir?: string; error?: string }
+    return {
+      text: packaged?.ok
+        ? `${name}: packaged in ${packaged.dir}.`
+        : `Could not package ${name}: ${packaged?.error ?? 'unknown error'}`,
+    }
   }
   if (verb === 'list' && noun === 'plugins') {
     if (step === 0) return { tool: 'list_plugins', input: {} }

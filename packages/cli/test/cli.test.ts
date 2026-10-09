@@ -192,6 +192,32 @@ describe('add and plugins', () => {
     expect(nowhere.err()).toContain('is not an app')
   })
 
+  it('brings an external plugin folder into the app extensions, and refuses one without an entry', async () => {
+    expect(await runCli(['init', 'outside', '-y'], fakeIo().io)).toBe(0)
+    const app = join(scratch, 'outside')
+    const external = join(scratch, 'my-plugin')
+    mkdirSync(external)
+    writeFileSync(
+      join(external, 'index.ts'),
+      "export const name = 'my-plugin'\nexport function apply() {}\n",
+    )
+    writeFileSync(
+      join(external, 'package.json'),
+      JSON.stringify({ name: '@me/my-plugin', dependencies: { left: '1.0.0' } }),
+    )
+    const session = fakeIo()
+    expect(await runCli(['add', external, '--dir', app], session.io)).toBe(0)
+    expect(existsSync(join(app, 'extensions/my-plugin/index.ts'))).toBe(true)
+    expect(session.out()).toContain('it uses left')
+    const again = fakeIo()
+    expect(await runCli(['add', external, '--dir', app], again.io)).toBe(1)
+    const empty = join(scratch, 'empty-plugin')
+    mkdirSync(empty)
+    const refused = fakeIo()
+    expect(await runCli(['add', empty, '--dir', app], refused.io)).toBe(1)
+    expect(refused.err()).toContain('has no index.ts')
+  })
+
   it('lists the library', async () => {
     const session = fakeIo()
     expect(await runCli(['plugins'], session.io)).toBe(0)

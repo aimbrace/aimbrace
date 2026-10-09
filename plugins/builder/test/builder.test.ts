@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, test } from 'node:test'
@@ -63,6 +63,20 @@ test('the agent builds a route plugin, updates it, survives a broken update, and
   assert.equal(await ask('remove plugin hello'), 'hello: done.')
   assert.equal((await get('/hello')).status, 404)
   assert.equal(existsSync(join(root, 'extensions', 'hello')), false)
+})
+
+test('package_plugin turns an extension into a standalone package with Cordis as a peer', async () => {
+  const { app, ask, root } = await boot()
+  await ask('create route hello /hello Hello')
+  const packaged = (await app.tools.call('package_plugin', { name: 'hello' })) as { dir: string }
+  assert.equal(packaged.dir, join(root, 'plugin-packages', 'hello'))
+  const manifest = JSON.parse(readFileSync(join(packaged.dir, 'package.json'), 'utf8'))
+  assert.deepEqual(
+    [manifest.name, manifest.peerDependencies, manifest.dependencies],
+    ['hello', { '@deepseek-ai/cordis': '4.0.4' }, undefined],
+  )
+  assert.ok(existsSync(join(packaged.dir, 'index.ts')))
+  await assert.rejects(app.tools.call('package_plugin', { name: 'ghost' }), /has no index\.ts/)
 })
 
 test('writes stay inside the plugin folder and only take source files', async () => {
