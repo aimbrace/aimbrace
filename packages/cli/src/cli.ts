@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { add, listPlugins, parseAddOptions } from './add'
 import { init, parseInitOptions, UsageError } from './init'
 import { type Io, processIo } from './io'
 
@@ -10,12 +11,14 @@ export const VERSION: string = (
 export const HELP = `aimbrace ${VERSION} - scaffold Cordis apps
 
 Usage:
-  aimbrace init [dir] [options]   Create a Cordis app in an empty or new directory
+  aimbrace init [dir] [options]       Create a Cordis app in an empty or new directory
+  aimbrace add <plugin...> [--dir d]  Copy library plugins (and what they require) into an app
+  aimbrace plugins                    List the plugin library
 
 Options for init:
   --agent / --no-agent   include the offline agent (asked when not given)
   --name <name>          the project name (default: the directory name)
-  --install              run pnpm install after copying
+  --install              run npm install after copying
   -y, --yes              ask nothing; use defaults (no agent, no install)
 
   -h, --help             show this help
@@ -37,6 +40,8 @@ export async function runCli(argv: readonly string[], io: Io = processIo()): Pro
       return 0
     }
     if (command === 'init') return await init(parseInitOptions(args), io)
+    if (command === 'add') return await add(parseAddOptions(args), io)
+    if (command === 'plugins') return listPlugins(io)
     throw new UsageError(`unknown command "${command}"`)
   } catch (error) {
     if (error instanceof UsageError) {

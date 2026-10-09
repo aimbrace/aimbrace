@@ -1,0 +1,6 @@
+{
+  "name": "agent",
+  "description": "An offline agent: deterministic model, tools, memory, and a child fiber per run that holds the run's step budget.",
+  "requires": [],
+  "dependencies": { "@deepseek-ai/cordis": "4.0.4" }
+}

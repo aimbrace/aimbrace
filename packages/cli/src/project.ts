@@ -53,9 +53,12 @@ export function copyTemplate(source: string, target: string, name: string): stri
   const written: string[] = []
   const walk = (from: string, to: string, prefix: string) => {
     for (const entry of readdirSync(from, { withFileTypes: true })) {
-      if (entry.name === 'node_modules') continue
+      if (entry.name === 'node_modules' || (prefix === '' && entry.name === TEMPLATE_MANIFEST))
+        continue
       const sourcePath = join(from, entry.name)
-      const targetPath = join(to, entry.name)
+      // npm and git treat a file named .gitignore specially, so templates keep it as `gitignore`.
+      const targetName = prefix === '' && entry.name === 'gitignore' ? '.gitignore' : entry.name
+      const targetPath = join(to, targetName)
       if (entry.isDirectory()) {
         mkdirSync(targetPath, { recursive: true })
         walk(sourcePath, targetPath, `${prefix}${entry.name}/`)
@@ -65,9 +68,38 @@ export function copyTemplate(source: string, target: string, name: string): stri
       if (text.includes('__APP_NAME__'))
         writeFileSync(targetPath, text.replaceAll('__APP_NAME__', name))
       else cpSync(sourcePath, targetPath)
-      written.push(`${prefix}${entry.name}`)
+      written.push(`${prefix}${targetName}`)
     }
   }
   walk(source, target, '')
   return written
+}
+
+/** A template's own manifest, `template.json`: the library plugins it is built from. Never copied. */
+export const TEMPLATE_MANIFEST = 'template.json'
+
+export function readTemplatePlugins(templateDir: string): string[] {
+  const file = join(templateDir, TEMPLATE_MANIFEST)
+  if (!existsSync(file)) return []
+  const { plugins } = JSON.parse(readFileSync(file, 'utf8')) as { plugins?: string[] }
+  return plugins ?? []
+}
+
+/** Add run-time dependencies to an app's package.json, keeping what is there and sorting the keys. Returns the names added. */
+export function mergeDependencies(
+  appDir: string,
+  dependencies: Readonly<Record<string, string>>,
+): string[] {
+  const file = join(appDir, 'package.json')
+  const manifest = JSON.parse(readFileSync(file, 'utf8')) as {
+    dependencies?: Record<string, string>
+  }
+  const current = manifest.dependencies ?? {}
+  const added = Object.keys(dependencies).filter((name) => !(name in current))
+  const merged = { ...dependencies, ...current }
+  manifest.dependencies = Object.fromEntries(
+    Object.entries(merged).sort(([a], [b]) => a.localeCompare(b)),
+  )
+  writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`)
+  return added
 }

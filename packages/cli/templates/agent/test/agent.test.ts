@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import { type App, createApp } from '../src/app.ts'
+import { pinnedInstance, withPort } from '../src/plugins/instance/index.ts'
+
+async function withApp(run: (app: App) => Promise<void>) {
+  const home = await mkdtemp(join(tmpdir(), 'agent-test-'))
+  const app = await createApp(withPort(pinnedInstance(home), 0))
+  try {
+    await run(app)
+  } finally {
+    await app.stop()
+    await rm(home, { recursive: true, force: true })
+  }
+}
+
+const ask = (app: App, body: unknown) =>
+  fetch(`${app.url}/ask`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+test('the agent uses a tool and answers over HTTP', () =>
+  withApp(async (app) => {
+    assert.deepEqual(await (await ask(app, { question: 'add 2 3' })).json(), {
+      status: 'completed',
+      output: 'The answer is 5.',
+      steps: 2,
+    })
+  }))
+
+test('a body without a question is refused', () =>
+  withApp(async (app) => {
+    const response = await ask(app, {})
+    assert.equal(response.status, 400)
+    await response.body?.cancel()
+  }))

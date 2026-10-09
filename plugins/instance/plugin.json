@@ -1,0 +1,6 @@
+{
+  "name": "instance",
+  "description": "Where the app keeps things (home, port, run lock), chosen once from the environment or the project folder.",
+  "requires": [],
+  "dependencies": { "@deepseek-ai/cordis": "4.0.4" }
+}

@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import { type App, createApp } from '../src/app.ts'
+import { pinnedInstance, withPort } from '../src/plugins/instance/index.ts'
+import { APP_NAME } from '../src/routes.ts'
+
+/** Boot the app in a throwaway home on any free port, run the test, always stop it and remove the home. */
+async function withApp(run: (app: App) => Promise<void>) {
+  const home = await mkdtemp(join(tmpdir(), 'app-test-'))
+  const app = await createApp(withPort(pinnedInstance(home), 0))
+  try {
+    await run(app)
+  } finally {
+    await app.stop()
+    await rm(home, { recursive: true, force: true })
+  }
+}
+
+test('serves the index route', () =>
+  withApp(async (app) => {
+    const response = await fetch(`${app.url}/`)
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), { app: APP_NAME, ok: true })
+  }))
+
+test('answers health checks and 404 for unknown paths', () =>
+  withApp(async (app) => {
+    assert.equal((await fetch(`${app.url}/health`)).status, 200)
+    const missing = await fetch(`${app.url}/nope`)
+    assert.equal(missing.status, 404)
+    await missing.body?.cancel()
+  }))
+
+test('stops listening when stopped', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'app-test-'))
+  const app = await createApp(withPort(pinnedInstance(home), 0))
+  await app.stop()
+  await assert.rejects(fetch(`${app.url}/health`))
+  await rm(home, { recursive: true, force: true })
+})

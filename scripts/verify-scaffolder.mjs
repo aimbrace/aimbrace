@@ -4,8 +4,9 @@
  *
  *  1. build the CLI and run `aimbrace init` for real into an empty temp directory
  *  2. a second `init` into the same directory must refuse and change nothing
- *  3. the generated package.json must depend on `@deepseek-ai/cordis` and nothing else
- *  4. install, run the project's own tests, boot it with `pnpm start`, request its routes, stop it with SIGINT
+ *  3. the generated package.json depends at run time only on the named packages (constitution III)
+ *  4. npm install, `npm run check` (types), `npm test`, boot it with `npm start` in a throwaway home, request its routes,
+ *     stop it with SIGINT, and confirm its data stayed in that home
  *
  * Needs the network for the install step. Fails on the first problem.
  */
@@ -18,6 +19,7 @@ const root = resolve(import.meta.dirname, '..')
 const cliDir = join(root, 'packages', 'cli')
 const cli = join(cliDir, 'bin', 'aimbrace.js')
 const scratch = mkdtempSync(join(tmpdir(), 'verify-scaffolder-'))
+const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 const TEMPLATES = { app: ['--no-agent'], agent: ['--agent'] }
 
 const log = (message) => console.log(`verify-scaffolder: ${message}`)
@@ -79,7 +81,7 @@ try {
     const dir = join(scratch, template)
     const name = `verify-${template}`
     capture(process.execPath, [cli, 'init', dir, '--name', name, '--yes', ...flags])
-    if (!existsSync(join(dir, 'src', 'app.mjs'))) fail(`${template}: init wrote no app`)
+    if (!existsSync(join(dir, 'src', 'app.ts'))) fail(`${template}: init wrote no app`)
 
     const again = spawn(process.execPath, [cli, 'init', dir, '--yes', ...flags], {
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -92,26 +94,30 @@ try {
 
     const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
     const deps = Object.keys(manifest.dependencies ?? {})
-    if (deps.join(',') !== '@deepseek-ai/cordis')
+    const allowed = new Set(['@deepseek-ai/cordis', '@deepseek-ai/schemastery', 'yaml'])
+    if (!deps.includes('@deepseek-ai/cordis') || deps.some((name) => !allowed.has(name)))
       fail(
-        `${template}: runtime dependencies are ${deps.join(', ')}, expected @deepseek-ai/cordis only`,
+        `${template}: runtime dependencies are ${deps.join(', ')}; allowed: ${[...allowed].join(', ')}`,
       )
-    log(`${template}: scaffolded, refusal ok, depends on @deepseek-ai/cordis only`)
+    log(`${template}: scaffolded, refusal ok, runtime dependencies ${deps.join(', ')}`)
 
-    capture('pnpm', ['install'], { cwd: dir })
-    capture('pnpm', ['test'], { cwd: dir })
+    capture(npm, ['install', '--no-audit', '--no-fund'], { cwd: dir })
+    capture(npm, ['run', 'check'], { cwd: dir })
+    capture(npm, ['test'], { cwd: dir })
     log(`${template}: installed, project tests pass`)
 
-    const child = spawn('pnpm', ['start'], {
+    const home = mkdtempSync(join(tmpdir(), `verify-home-${template}-`))
+    const child = spawn(npm, ['start'], {
       cwd: dir,
-      env: { ...process.env, PORT: '0' },
+      env: { ...process.env, AIMBRACE_HOME: home, AIMBRACE_PORT: '0' },
+      shell: process.platform === 'win32',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     try {
       const url = await waitForUrl(child)
-      const home = await json(await fetch(`${url}/`), `${template}: GET /`)
-      if (home.app !== name || home.ok !== true)
-        fail(`${template}: GET / answered ${JSON.stringify(home)}`)
+      const index = await json(await fetch(`${url}/`), `${template}: GET /`)
+      if (index.app !== name || index.ok !== true)
+        fail(`${template}: GET / answered ${JSON.stringify(index)}`)
       await json(await fetch(`${url}/health`), `${template}: GET /health`)
       if (template === 'agent') {
         const answer = await json(
@@ -129,6 +135,11 @@ try {
     } finally {
       await stopCleanly(child)
     }
+    // AIMBRACE_HOME pinned the data elsewhere, so the project folder must not have grown its own data folder.
+    if (existsSync(join(dir, '.aimbrace')))
+      fail(`${template}: wrote .aimbrace into the project despite AIMBRACE_HOME`)
+    rmSync(home, { recursive: true, force: true })
+    log(`${template}: stopped cleanly; data stayed in the pinned home`)
   }
   log('OK')
 } finally {

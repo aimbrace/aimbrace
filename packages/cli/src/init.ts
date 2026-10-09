@@ -1,7 +1,15 @@
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import type { Io } from './io'
-import { copyTemplate, isValidName, nameFrom, TargetNotEmptyError } from './project'
+import { closure, copyPlugin, readLibrary } from './library'
+import {
+  copyTemplate,
+  isValidName,
+  mergeDependencies,
+  nameFrom,
+  readTemplatePlugins,
+  TargetNotEmptyError,
+} from './project'
 import { templateDir, templateFor } from './templates'
 
 /** A command line mistake. The CLI prints it with the help text and exits 2. */
@@ -72,7 +80,7 @@ export async function init(options: InitOptions, io: Io): Promise<number> {
   const agent =
     options.agent ?? (ask ? yes(await ask('Include the offline agent? (y/N): ')) : false)
   const install =
-    options.install ?? (ask ? yes(await ask('Install dependencies with pnpm now? (y/N): ')) : false)
+    options.install ?? (ask ? yes(await ask('Install dependencies with npm now? (y/N): ')) : false)
 
   const template = templateFor(agent)
   let files: string[]
@@ -83,16 +91,23 @@ export async function init(options: InitOptions, io: Io): Promise<number> {
     io.stderr.write(`error: ${error.message}\n`)
     return 1
   }
-  io.stdout.write(`created ${name} (${template}) in ${directory}: ${files.length} files\n`)
+  const plugins = closure(readTemplatePlugins(templateDir(template)), readLibrary())
+  for (const plugin of plugins) {
+    copyPlugin(plugin, directory)
+    mergeDependencies(directory, plugin.dependencies)
+  }
+  io.stdout.write(
+    `created ${name} (${template}) in ${directory}: ${files.length} files, plugins ${plugins.map((plugin) => plugin.name).join(', ')}\n`,
+  )
 
   if (install && (await io.install(directory)) !== 0) {
-    io.stderr.write('error: pnpm install failed; run it yourself in the new directory\n')
+    io.stderr.write('error: npm install failed; run it yourself in the new directory\n')
     return 1
   }
   const steps = [
     relative === '.' ? '' : `  cd ${relative}\n`,
-    install ? '' : '  pnpm install\n',
-    '  pnpm dev\n  pnpm test\n',
+    install ? '' : '  npm install\n',
+    '  npm run dev\n  npm test\n',
   ]
   io.stdout.write(`\nNext:\n${steps.join('')}`)
   return 0

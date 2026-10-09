@@ -1,0 +1,6 @@
+{
+  "name": "http",
+  "description": "The router service: plugins add routes inside ctx.effect, so a route disappears with the plugin that added it.",
+  "requires": [],
+  "dependencies": { "@deepseek-ai/cordis": "4.0.4" }
+}

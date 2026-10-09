@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import { Context } from '@deepseek-ai/cordis'
+import {
+  instance,
+  PORT_BASE,
+  PORT_SPAN,
+  projectInstance,
+  selectInstance,
+  stablePort,
+  withPort,
+} from '../index.ts'
+
+test('a project keeps its data in its own folder, with a stable port in the app range', () => {
+  const chosen = projectInstance('/work/My Shop')
+  assert.equal(chosen.kind, 'project')
+  assert.equal(chosen.name, 'my-shop')
+  assert.equal(chosen.home, join('/work/My Shop', '.aimbrace'))
+  assert.equal(chosen.port.start, stablePort(chosen.id))
+  assert.ok(chosen.port.start >= PORT_BASE && chosen.port.start < PORT_BASE + PORT_SPAN)
+  assert.ok(Object.isFrozen(chosen) && Object.isFrozen(chosen.port))
+})
+
+test('two folders with the same name are different apps', () => {
+  assert.notEqual(projectInstance('/a/shop').id, projectInstance('/b/shop').id)
+})
+
+test('the environment pins the home and the port; nothing else reads it', () => {
+  const chosen = selectInstance({
+    projectRoot: '/work/shop',
+    env: { AIMBRACE_HOME: '/tmp/isolated', AIMBRACE_PORT: '0' },
+  })
+  assert.equal(chosen.kind, 'pinned')
+  assert.equal(chosen.home, '/tmp/isolated')
+  assert.deepEqual(chosen.port, { start: 0, scan: false })
+  assert.equal(selectInstance({ projectRoot: '/work/shop' }).kind, 'project')
+})
+
+test('an invalid port is refused', () => {
+  assert.throws(() => withPort(projectInstance('/x'), 70_000), /port must be/)
+})
+
+test('the plugin provides the chosen instance', async () => {
+  const root = new Context()
+  const chosen = projectInstance('/work/shop')
+  const fiber = root.plugin(instance, chosen)
+  await fiber.await()
+  assert.equal(root.get('appInstance'), chosen)
+  await fiber.dispose()
+})

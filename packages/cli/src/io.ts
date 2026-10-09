@@ -12,7 +12,7 @@ export interface Io {
   install(directory: string): Promise<number>
 }
 
-/** The real terminal and `pnpm install`. */
+/** The real terminal and `npm install`. */
 export function processIo(): Io {
   const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY)
   return {
@@ -31,7 +31,11 @@ export function processIo(): Io {
       : undefined,
     install: (directory) =>
       new Promise((done) => {
-        const child = spawn('pnpm', ['install'], { cwd: directory, stdio: 'inherit' })
+        const child = spawn('npm', ['install'], {
+          cwd: directory,
+          stdio: 'inherit',
+          shell: process.platform === 'win32',
+        })
         child.on('error', () => done(1))
         child.on('exit', (code) => done(code ?? 1))
       }),

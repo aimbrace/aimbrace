@@ -11,9 +11,12 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
+  closure,
   type Io,
   nameFrom,
   parseInitOptions,
+  readLibrary,
+  readTemplatePlugins,
   runCli,
   TEMPLATES,
   templatesRoot,
@@ -50,9 +53,34 @@ describe('templates', () => {
     expect(readdirSync(templatesRoot()).sort()).toEqual([...TEMPLATES].sort())
   })
 
-  it.each(TEMPLATES)('%s depends on @deepseek-ai/cordis only', (template) => {
-    const deps = manifest(join(templatesRoot(), template)).dependencies
-    expect(Object.keys(deps)).toEqual(['@deepseek-ai/cordis'])
+  it.each(TEMPLATES)(
+    '%s lists library plugins that exist, and declares no dependency of its own',
+    (template) => {
+      const library = readLibrary()
+      for (const name of readTemplatePlugins(join(templatesRoot(), template)))
+        expect(library.has(name)).toBe(true)
+      expect(manifest(join(templatesRoot(), template)).dependencies).toEqual({})
+    },
+  )
+})
+
+describe('library', () => {
+  it('orders each plugin after what it requires, without duplicates', () => {
+    const names = closure(['server', 'instance', 'http'], readLibrary()).map(
+      (plugin) => plugin.name,
+    )
+    expect(names).toEqual(['http', 'server', 'instance'])
+  })
+
+  it('refuses an unknown plugin and names who required it', () => {
+    expect(() => closure(['nope'], readLibrary())).toThrow(/no plugin "nope"/)
+  })
+
+  it('every plugin depends only on the named run-time packages', () => {
+    const allowed = new Set(['@deepseek-ai/cordis', '@deepseek-ai/schemastery', 'yaml'])
+    for (const plugin of readLibrary().values()) {
+      for (const name of Object.keys(plugin.dependencies)) expect(allowed.has(name)).toBe(true)
+    }
   })
 })
 
@@ -99,17 +127,24 @@ describe('init', () => {
     expect(await runCli(['init', 'plain', '-y'], session.io)).toBe(0)
     const dir = join(scratch, 'plain')
     expect(manifest(dir).name).toBe('plain')
-    expect(readFileSync(join(dir, 'src/plugins/routes.mjs'), 'utf8')).toContain("app: 'plain'")
-    expect(existsSync(join(dir, 'src/plugins/agent.mjs'))).toBe(false)
+    expect(readFileSync(join(dir, 'src/routes.ts'), 'utf8')).toContain("APP_NAME = 'plain'")
+    for (const plugin of ['instance', 'http', 'server'])
+      expect(existsSync(join(dir, 'src/plugins', plugin, 'index.ts'))).toBe(true)
+    expect(existsSync(join(dir, 'src/plugins/agent'))).toBe(false)
+    expect(existsSync(join(dir, 'src/plugins/http/plugin.json'))).toBe(false)
+    expect(existsSync(join(dir, 'src/plugins/http/test'))).toBe(false)
+    expect(existsSync(join(dir, '.gitignore'))).toBe(true)
+    expect(existsSync(join(dir, 'template.json'))).toBe(false)
+    expect(manifest(dir).dependencies).toEqual({ '@deepseek-ai/cordis': '4.0.4' })
     expect(session.out()).toContain('created plain (app)')
-    expect(session.out()).toContain('cd plain\n  pnpm install\n  pnpm dev')
+    expect(session.out()).toContain('cd plain\n  npm install\n  npm run dev')
     expect(session.installed).toEqual([])
   })
 
   it('copies the agent template when asked on the terminal', async () => {
     const session = fakeIo({ answers: ['', 'y', 'n'] })
     expect(await runCli(['init', 'asked'], session.io)).toBe(0)
-    expect(existsSync(join(scratch, 'asked/src/plugins/agent.mjs'))).toBe(true)
+    expect(existsSync(join(scratch, 'asked/src/plugins/agent/agent.ts'))).toBe(true)
     expect(session.out()).toContain('created asked (agent)')
   })
 
@@ -133,9 +168,32 @@ describe('init', () => {
     const ok = fakeIo()
     expect(await runCli(['init', 'installed', '-y', '--install'], ok.io)).toBe(0)
     expect(ok.installed).toEqual([join(scratch, 'installed')])
-    expect(ok.out()).not.toContain('pnpm install')
+    expect(ok.out()).not.toContain('npm install')
     const failing = fakeIo({ installCode: 1 })
     expect(await runCli(['init', 'install-fails', '-y', '--install'], failing.io)).toBe(1)
-    expect(failing.err()).toContain('pnpm install failed')
+    expect(failing.err()).toContain('npm install failed')
+  })
+})
+
+describe('add and plugins', () => {
+  it('adds a plugin to an app, refuses it twice, and refuses a folder that is not an app', async () => {
+    expect(await runCli(['init', 'grows', '-y'], fakeIo().io)).toBe(0)
+    const dir = join(scratch, 'grows')
+    const first = fakeIo()
+    expect(await runCli(['add', 'agent', '--dir', dir], first.io)).toBe(0)
+    expect(existsSync(join(dir, 'src/plugins/agent/index.ts'))).toBe(true)
+    expect(first.out()).toContain('added agent')
+    const again = fakeIo()
+    expect(await runCli(['add', 'agent', '--dir', dir], again.io)).toBe(1)
+    expect(again.err()).toContain('already has src/plugins/agent')
+    const nowhere = fakeIo()
+    expect(await runCli(['add', 'agent', '--dir', join(scratch, 'missing')], nowhere.io)).toBe(1)
+    expect(nowhere.err()).toContain('is not an app')
+  })
+
+  it('lists the library', async () => {
+    const session = fakeIo()
+    expect(await runCli(['plugins'], session.io)).toBe(0)
+    expect(session.out()).toMatch(/^server .*requires http/m)
   })
 })
