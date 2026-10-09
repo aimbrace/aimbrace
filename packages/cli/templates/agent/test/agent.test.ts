@@ -3,12 +3,15 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { type App, createApp } from '../src/app.ts'
 import { pinnedInstance, withPort } from '../src/plugins/instance/index.ts'
 
+const projectRoot = fileURLToPath(new URL('..', import.meta.url))
+
 async function withApp(run: (app: App) => Promise<void>) {
   const home = await mkdtemp(join(tmpdir(), 'agent-test-'))
-  const app = await createApp(withPort(pinnedInstance(home), 0))
+  const app = await createApp(withPort(pinnedInstance(home, { root: projectRoot }), 0))
   try {
     await run(app)
   } finally {

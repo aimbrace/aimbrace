@@ -26,6 +26,8 @@ export interface AppInstance {
   readonly id: string
   /** Human name: the project folder's name. */
   readonly name: string
+  /** The project folder: its code and its `node_modules`. */
+  readonly root: string
   /** The app's own data: settings, installed extensions, the extension ledger. Never shared with another app. */
   readonly home: string
   readonly port: PortPreference
@@ -66,6 +68,7 @@ function family(input: {
   kind: AppInstanceKind
   id: string
   name: string
+  root: string
   home: string
   port: PortPreference
 }): AppInstance {
@@ -73,6 +76,7 @@ function family(input: {
     kind: input.kind,
     id: input.id,
     name: input.name,
+    root: input.root,
     home: input.home,
     port: Object.freeze({ ...input.port }),
     runLockFile: join(input.home, RUN_LOCK_FILE),
@@ -88,19 +92,28 @@ export function projectInstance(projectRoot: string): AppInstance {
     kind: 'project',
     id,
     name,
+    root,
     home: join(root, HOME_DIR_NAME),
     port: { start: stablePort(id), scan: true },
   })
 }
 
-/** A home the caller pinned (AIMBRACE_HOME): honoured as given. Tests and second copies of an app use it to stay apart. */
-export function pinnedInstance(home: string, name?: string): AppInstance {
+/**
+ * A home the caller pinned (AIMBRACE_HOME): honoured as given. Tests and second copies of an app use it to stay apart. `root` is the
+ * project folder (where its packages are installed); it defaults to the current directory.
+ */
+export function pinnedInstance(
+  home: string,
+  options: { name?: string; root?: string } = {},
+): AppInstance {
   const absolute = resolve(home)
+  const root = resolve(options.root ?? process.cwd())
   const id = `pinned-${digest(absolute, 6)}`
   return family({
     kind: 'pinned',
     id,
-    name: name ?? plainName(absolute),
+    name: options.name ?? plainName(root),
+    root,
     home: absolute,
     port: { start: stablePort(id), scan: true },
   })
@@ -127,7 +140,7 @@ export function selectInstance(options: {
   const env = options.env ?? {}
   const pinned = env[HOME_ENV]?.trim()
   let instance = pinned
-    ? pinnedInstance(pinned, plainName(options.projectRoot))
+    ? pinnedInstance(pinned, { name: plainName(options.projectRoot), root: options.projectRoot })
     : projectInstance(options.projectRoot)
   const port = env[PORT_ENV]?.trim()
   if (port) instance = withPort(instance, Number(port))

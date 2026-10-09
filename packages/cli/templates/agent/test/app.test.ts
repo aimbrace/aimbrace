@@ -3,14 +3,17 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { type App, createApp } from '../src/app.ts'
 import { pinnedInstance, withPort } from '../src/plugins/instance/index.ts'
 import { APP_NAME } from '../src/routes.ts'
 
+const projectRoot = fileURLToPath(new URL('..', import.meta.url))
+
 /** Boot the app in a throwaway home on any free port, run the test, always stop it and remove the home. */
 async function withApp(run: (app: App) => Promise<void>) {
   const home = await mkdtemp(join(tmpdir(), 'app-test-'))
-  const app = await createApp(withPort(pinnedInstance(home), 0))
+  const app = await createApp(withPort(pinnedInstance(home, { root: projectRoot }), 0))
   try {
     await run(app)
   } finally {
@@ -36,7 +39,7 @@ test('answers health checks and 404 for unknown paths', () =>
 
 test('stops listening when stopped', async () => {
   const home = await mkdtemp(join(tmpdir(), 'app-test-'))
-  const app = await createApp(withPort(pinnedInstance(home), 0))
+  const app = await createApp(withPort(pinnedInstance(home, { root: projectRoot }), 0))
   await app.stop()
   await assert.rejects(fetch(`${app.url}/health`))
   await rm(home, { recursive: true, force: true })

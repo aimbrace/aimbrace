@@ -11,7 +11,11 @@ A task closes when its evidence is on `main`.
   the old `.mjs` templates until T208.
 - [x] T203 P2: settings, ported from `acryl-settings` (layers, atomic ordered writes, watch, `settings/updated`, settle
   on dispose). Evidence: 6 tests; verify adds it to a fresh app, installs and type-checks.
-- [ ] T204 P3: extensions.
+- [x] T204 P3: extensions, ported from `acryl-extension-context` without pnpm: checks, content-hashed staging and fresh
+  import, real fiber state (active, pending with missing services, failed with the error), rollback to the previous
+  version on a failed update (and an untouched old version on an import error), remove, reload, ledger, startup pass with
+  trust rules, a public `module.registerHooks` resolver for staged imports. Evidence: 9 tests, including two real defects
+  found and fixed (an empty staging folder left by remove; mounted extensions not disposed with the plugin).
 - [ ] T205 P4: builder and agent; the verify script proves the self-extension loop.
 - [ ] T206 P5: manifest.
 - [ ] T207 P6: save.

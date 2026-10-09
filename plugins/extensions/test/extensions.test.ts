@@ -1,0 +1,193 @@
+import assert from 'node:assert/strict'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, test } from 'node:test'
+import { fileURLToPath } from 'node:url'
+import { Context } from '@deepseek-ai/cordis'
+import { instance, pinnedInstance } from '../../instance/index.ts'
+import { type ExtensionSource, extensions } from '../index.ts'
+
+/** The repository root: its node_modules has @deepseek-ai/cordis, as an app's project folder would. */
+const appRoot = fileURLToPath(new URL('../../..', import.meta.url))
+const cleanup: Array<() => Promise<void> | void> = []
+afterEach(async () => {
+  for (const step of cleanup.splice(0).reverse()) await step()
+})
+
+async function boot(
+  options: { home?: string; sources?: (home: string) => ExtensionSource[] } = {},
+) {
+  const home = options.home ?? mkdtempSync(join(tmpdir(), 'extensions-test-'))
+  const root = new Context()
+  const chosen = pinnedInstance(home, { root: appRoot })
+  const fibers = [
+    root.plugin(instance, chosen),
+    root.plugin(extensions, options.sources ? { sources: options.sources(home) } : {}),
+  ]
+  for (const fiber of fibers) await fiber.await()
+  const stop = async () => {
+    for (const fiber of [...fibers].reverse()) await fiber.dispose()
+  }
+  cleanup.push(stop)
+  if (!options.home) cleanup.unshift(() => rmSync(home, { recursive: true, force: true }))
+  return { root, home, folder: join(home, 'extensions'), stop }
+}
+
+/** Write an extension that provides a `greeting` service built from a sibling file. */
+function writeGreeter(
+  folder: string,
+  greeting: string,
+  options: { throws?: boolean; syntaxError?: boolean } = {},
+) {
+  const dir = join(folder, 'greeter')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'words.ts'), `export const greeting = ${JSON.stringify(greeting)}\n`)
+  writeFileSync(
+    join(dir, 'index.ts'),
+    options.syntaxError
+      ? 'export const name = (\n'
+      : `import { Context } from '@deepseek-ai/cordis'
+import { greeting } from './words.ts'
+export const name = 'greeter'
+export function apply(ctx: Context) {
+  if (typeof Context !== 'function') throw new Error('cordis did not resolve')
+  ${options.throws ? "throw new Error('greeter refuses to start')" : "ctx.provide('greeting', greeting)"}
+}
+`,
+  )
+  return dir
+}
+
+test('installs a folder, mounts it, and reports it active', async () => {
+  const { root, folder } = await boot()
+  const dir = writeGreeter(folder, 'hello')
+  const result = await root.extensions.install(dir)
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.ok && [result.action, result.state], ['installed', 'active'])
+  assert.equal(root.get('greeting'), 'hello')
+  assert.deepEqual(
+    root.extensions.list().map((entry) => [entry.name, entry.state]),
+    [['greeter', 'active']],
+  )
+})
+
+test('an update runs the new code, including a changed sibling file, without a restart', async () => {
+  const { root, folder } = await boot()
+  await root.extensions.install(writeGreeter(folder, 'hello'))
+  const unchanged = await root.extensions.install(join(folder, 'greeter'))
+  assert.equal(unchanged.ok && unchanged.action, 'unchanged')
+  const updated = await root.extensions.install(writeGreeter(folder, 'bonjour'))
+  assert.equal(updated.ok && updated.action, 'updated')
+  assert.equal(root.get('greeting'), 'bonjour')
+})
+
+test('an update that fails to start brings the previous version back', async () => {
+  const { root, folder } = await boot()
+  await root.extensions.install(writeGreeter(folder, 'hello'))
+  const broken = await root.extensions.install(writeGreeter(folder, 'never', { throws: true }))
+  assert.equal(broken.ok, false)
+  assert.equal(!broken.ok && broken.stage, 'activate')
+  assert.equal(!broken.ok && broken.restoredPrevious, true)
+  assert.match(!broken.ok ? (broken.errors[0] ?? '') : '', /refuses to start/)
+  assert.equal(root.get('greeting'), 'hello')
+  assert.deepEqual(
+    root.extensions.list().map((entry) => entry.state),
+    ['active'],
+  )
+})
+
+test('an update that does not even import leaves the running version untouched', async () => {
+  const { root, folder } = await boot()
+  await root.extensions.install(writeGreeter(folder, 'hello'))
+  const broken = await root.extensions.install(writeGreeter(folder, 'x', { syntaxError: true }))
+  assert.equal(!broken.ok && broken.stage, 'import')
+  assert.equal(!broken.ok && broken.restoredPrevious, true)
+  assert.equal(root.get('greeting'), 'hello')
+})
+
+test('an extension waiting for a service is pending and names what it waits for', async () => {
+  const { root, folder } = await boot()
+  const dir = join(folder, 'needy')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(
+    join(dir, 'index.ts'),
+    "export const name = 'needy'\nexport const inject = ['database']\nexport function apply() {}\n",
+  )
+  const result = await root.extensions.install(dir)
+  assert.deepEqual(result.ok && [result.state, result.missing], ['pending', ['database']])
+})
+
+test('refuses a folder outside the sources, a bad name, a missing entry and a name mismatch', async () => {
+  const { root, folder, home } = await boot()
+  const outside = join(home, 'elsewhere', 'thing')
+  mkdirSync(outside, { recursive: true })
+  writeFileSync(
+    join(outside, 'index.ts'),
+    "export const name = 'thing'\nexport function apply() {}\n",
+  )
+  const refused = await root.extensions.install(outside)
+  assert.match(!refused.ok ? refused.errors.join() : '', /not inside an extension source/)
+  mkdirSync(join(folder, 'Bad_Name'), { recursive: true })
+  assert.match(String(!(await root.extensions.install(join(folder, 'Bad_Name'))).ok), /true/)
+  mkdirSync(join(folder, 'empty'), { recursive: true })
+  const empty = await root.extensions.install(join(folder, 'empty'))
+  assert.match(!empty.ok ? empty.errors.join() : '', /has no index\.ts/)
+  const mismatch = join(folder, 'mismatch')
+  mkdirSync(mismatch, { recursive: true })
+  writeFileSync(
+    join(mismatch, 'index.ts'),
+    "export const name = 'other'\nexport function apply() {}\n",
+  )
+  const named = await root.extensions.install(mismatch)
+  assert.match(!named.ok ? named.errors.join() : '', /must match/)
+})
+
+test('remove disposes the extension, and the ledger records every change in order', async () => {
+  const { root, folder, home } = await boot()
+  await root.extensions.install(writeGreeter(folder, 'hello'))
+  await root.extensions.install(writeGreeter(folder, 'never', { throws: true }))
+  const removed = await root.extensions.remove('greeter')
+  assert.equal(removed.ok, true)
+  assert.equal(root.get('greeting'), undefined)
+  assert.equal(existsSync(join(home, 'extensions-staged', 'greeter')), false)
+  assert.deepEqual(
+    root.extensions.ledger().map((entry) => entry.kind),
+    ['installed', 'refused', 'restored', 'removed'],
+  )
+  assert.equal((await root.extensions.remove('greeter')).ok, false)
+})
+
+test('a restart mounts what was installed; a trusted source installs new folders, a listed one only reports them', async () => {
+  const home = mkdtempSync(join(tmpdir(), 'extensions-test-'))
+  cleanup.unshift(() => rmSync(home, { recursive: true, force: true }))
+  const first = await boot({ home })
+  await first.root.extensions.install(writeGreeter(first.folder, 'hello'))
+  await first.stop()
+
+  const project = join(home, 'project-extensions')
+  const listed = join(project, 'later')
+  mkdirSync(listed, { recursive: true })
+  writeFileSync(
+    join(listed, 'index.ts'),
+    "export const name = 'later'\nexport function apply() {}\n",
+  )
+  const second = await boot({
+    home,
+    sources: (dir) => [
+      { dir: join(dir, 'extensions'), trust: 'install' },
+      { dir: project, trust: 'list' },
+    ],
+  })
+  const summary = await second.root.extensions.ready
+  assert.deepEqual(summary.installed, ['greeter'])
+  assert.deepEqual(summary.pending, ['later'])
+  assert.equal(second.root.get('greeting'), 'hello')
+})
+
+test('disposing the plugin disposes every extension it mounted', async () => {
+  const { root, folder, stop } = await boot()
+  await root.extensions.install(writeGreeter(folder, 'hello'))
+  await stop()
+  assert.equal(root.get('greeting'), undefined)
+})
