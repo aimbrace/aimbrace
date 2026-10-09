@@ -51,15 +51,24 @@ function waitForUrl(child, timeoutMs = 60_000) {
   })
 }
 
+/**
+ * Stop the app the way Ctrl+C in a terminal does: SIGINT to its whole process group (npm, the shell npm starts, and node). Signalling
+ * npm alone is not enough on Linux, where /bin/sh (dash) does not pass the signal on to node. Windows has no process groups.
+ */
+const interrupt = (child, signal) => {
+  if (process.platform === 'win32') child.kill(signal)
+  else process.kill(-child.pid, signal)
+}
+
 async function stopCleanly(child) {
   const exited = new Promise((done) => child.once('exit', (code) => done(code)))
-  child.kill('SIGINT')
+  interrupt(child, 'SIGINT')
   const code = await Promise.race([
     exited,
     new Promise((done) => setTimeout(() => done('timeout'), 10_000)),
   ])
   if (code === 'timeout') {
-    child.kill('SIGKILL')
+    interrupt(child, 'SIGKILL')
     fail('the app did not stop within 10s of SIGINT')
   }
   if (code !== 0 && code !== null) fail(`the app exited with ${code} on SIGINT`)
@@ -117,6 +126,8 @@ try {
         cwd: dir,
         env: { ...process.env, AIMBRACE_HOME: home, AIMBRACE_PORT: '0' },
         shell: process.platform === 'win32',
+        // Its own process group, so stopCleanly can interrupt npm and everything it started together.
+        detached: process.platform !== 'win32',
         stdio: ['ignore', 'pipe', 'pipe'],
       })
     let child = start()
