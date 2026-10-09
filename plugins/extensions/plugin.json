@@ -1,7 +1,9 @@
 {
   "name": "extensions",
   "description": "Install, update, remove and reload plugins while the app runs; a failed update brings the previous version back; a ledger of every change.",
-  "requires": ["instance"],
-  "dependencies": { "@deepseek-ai/cordis": "4.0.4" },
+  "requires": ["instance", "digest"],
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.0.4"
+  },
   "mount": "mount it after instance: root.plugin(extensions, { sources: [{ dir: join(root, 'extensions'), trust: 'install' }] })"
 }

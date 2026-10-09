@@ -1,0 +1,26 @@
+# The app as data: which plugins it mounts, in what order, with what config. Edit this, not app.ts, to switch a plugin
+# off (disabled: true) or change its config. `npm run lock` records exactly what the app is built from.
+# Order matters: http comes before extensions, because installed extensions start again at boot and may add routes.
+apiVersion: aimbrace/v1
+kind: App
+metadata:
+  name: __APP_NAME__
+  version: 0.1.0
+parameters:
+  hostname: { type: string, default: 127.0.0.1, description: The address the server listens on. }
+  steps: { type: number, default: 6, description: Steps an agent run may take. }
+plugins:
+  - id: tasks
+  - id: model
+  - id: tools
+  - id: memory
+  - id: agent
+    config:
+      steps: "{{parameters.steps}}"
+  - id: http
+  - id: extensions
+  - id: builder
+  - id: routes
+  - id: server
+    config:
+      hostname: "{{parameters.hostname}}"

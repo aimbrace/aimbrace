@@ -26,6 +26,10 @@ A task closes when its evidence is on `main`.
   call; an extension's own `check` must pass before an install counts (stage `verify`, rollback like a failed start);
   the builder's route plugins check their own route; `GET /tasks`, `POST /tasks/cancel`. Evidence: 4 task tests, 1 new
   agent test, 1 new extensions test; verify reads the task records back after a restart.
-- [ ] T206 P5: manifest.
+- [x] T206 P5: manifest, ported from Blends: `aimbrace.yaml` rows (`id`, `use`, `config`, `disabled`), typed parameters
+  with `{{parameters.name}}`, diagnostics with a code and a path, `compose` in order with runtime overrides, `npm run
+  lock` (manifest digest, rows, values, a digest per plugin folder). Both templates compose from it. A `digest` plugin
+  holds the one folder-digest definition that staging and the lock share. Evidence: 5 manifest tests, 1 digest test,
+  1 template test; verify runs `npm run lock` in both apps.
 - [ ] T207 P6: save.
 - [ ] T208 P7: docs.

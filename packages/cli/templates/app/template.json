@@ -1,1 +1,1 @@
-{ "plugins": ["instance", "http", "server"] }
+{ "plugins": ["instance", "http", "server", "manifest"] }

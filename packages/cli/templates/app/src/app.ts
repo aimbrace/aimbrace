@@ -1,8 +1,17 @@
-import { Context } from '@deepseek-ai/cordis'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
+import { compose, loadManifest, type ParameterValue } from './plugins/manifest/index.ts'
 import { server } from './plugins/server/index.ts'
 import { routes } from './routes.ts'
+
+/** The plugins this app's code provides. `aimbrace.yaml` chooses, orders and configures them. */
+export const registry = { http, routes, server }
+
+/** The manifest next to this app's source. */
+export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'aimbrace.yaml')
 
 export interface App {
   readonly root: Context
@@ -10,26 +19,24 @@ export interface App {
   stop(): Promise<void>
 }
 
-/**
- * The whole app, as Cordis plugins on one root context. `inject` decides when each plugin can start; they are awaited in
- * dependency order because a fiber still waiting on an injected service reports done too early.
- */
+/** The app: `instance` first (where it lives, chosen at run time), then the manifest's rows in order. */
 export async function createApp(
   chosen: AppInstance,
-  options: { hostname?: string } = {},
+  options: { values?: Readonly<Record<string, ParameterValue>> } = {},
 ): Promise<App> {
+  const manifest = loadManifest(MANIFEST, {
+    known: Object.keys(registry),
+    ...(options.values ? { values: options.values } : {}),
+  })
   const root = new Context()
-  const fibers = [
-    root.plugin(instance, chosen),
-    root.plugin(http),
-    root.plugin(routes),
-    root.plugin(server, {
-      port: chosen.port.start,
-      scan: chosen.port.scan,
-      hostname: options.hostname ?? '127.0.0.1',
-    }),
+  const first = root.plugin(instance, chosen)
+  await first.await()
+  const fibers: Fiber[] = [
+    first,
+    ...(await compose(root, manifest, registry, {
+      server: { port: chosen.port.start, scan: chosen.port.scan },
+    })),
   ]
-  for (const fiber of fibers) await fiber.await()
   return {
     root,
     url: root.server.url,

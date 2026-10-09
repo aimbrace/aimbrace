@@ -5,31 +5,12 @@
  * code; a copy at a new path has fresh URLs for the entry and everything it imports, so it is evaluated anew. The author's source folder
  * is never modified. The hash makes an unchanged source recognisable; the stamp makes "newest" well defined.
  */
-import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { basename, join } from 'node:path'
+import { digestFolder, SKIPPED } from '../digest/index.ts'
 
-const SKIP = new Set(['node_modules', '.git'])
-
-function walk(dir: string, visit: (path: string, relative: string) => void, prefix = ''): void {
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    if (SKIP.has(entry.name)) continue
-    const path = join(dir, entry.name)
-    if (entry.isDirectory()) walk(path, visit, `${prefix}${entry.name}/`)
-    else visit(path, `${prefix}${entry.name}`)
-  }
-}
-
-/** A content hash of a folder's files (names and bytes), so an unchanged source keeps its version. */
-export function hashFolder(dir: string, length = 12): string {
-  const files: Array<[string, string]> = []
-  walk(dir, (path, relative) => files.push([relative, path]))
-  files.sort(([a], [b]) => (a < b ? -1 : 1))
-  const hash = createHash('sha256')
-  for (const [relative, path] of files)
-    hash.update(relative).update('\0').update(readFileSync(path)).update('\0')
-  return hash.digest('hex').slice(0, length)
-}
+/** A short content digest of a folder, so an unchanged source keeps its version. */
+export const hashFolder = (dir: string, length = 12): string => digestFolder(dir, length)
 
 /** Copy `source` into a new version folder under `stageRoot/<name>/` and return its path and version. */
 export function stage(
@@ -41,7 +22,7 @@ export function stage(
   const stamp = String(Date.now()).padStart(15, '0')
   const dir = join(stageRoot, name, `${stamp}-${version}`)
   mkdirSync(dir, { recursive: true })
-  cpSync(source, dir, { recursive: true, filter: (path) => !SKIP.has(basename(path)) })
+  cpSync(source, dir, { recursive: true, filter: (path) => !SKIPPED.has(basename(path)) })
   return { dir, version }
 }
 

@@ -104,6 +104,11 @@ try {
     capture(npm, ['install', '--no-audit', '--no-fund'], { cwd: dir })
     capture(npm, ['run', 'check'], { cwd: dir })
     capture(npm, ['test'], { cwd: dir })
+    capture(npm, ['run', 'lock'], { cwd: dir })
+    const locked = JSON.parse(readFileSync(join(dir, 'aimbrace.lock.json'), 'utf8'))
+    if (!/^sha256:[0-9a-f]{64}$/.test(locked.manifest?.digest ?? '') || !locked.sources?.manifest) {
+      fail(`${template}: npm run lock wrote ${JSON.stringify(locked).slice(0, 200)}`)
+    }
     log(`${template}: installed, project tests pass`)
 
     const home = mkdtempSync(join(tmpdir(), `verify-home-${template}-`))

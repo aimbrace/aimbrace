@@ -10,7 +10,8 @@
     "start": "node src/main.ts",
     "dev": "node --watch src/main.ts",
     "test": "node --test",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "lock": "node src/plugins/manifest/lock.ts"
   },
   "dependencies": {},
   "devDependencies": {
