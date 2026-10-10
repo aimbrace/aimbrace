@@ -39,15 +39,72 @@ spec:
 - **Runtime values win**: `app.ts` passes what is only known at run time (the port, the extensions folder, the manifest's own
   digest) as overrides.
 
-## Compatible with ACRYL, and what is not read yet
+## Compatible with ACRYL
 
-A test checks both templates' manifests against ACRYL's own JSON schema (copied from `runtime/blends-core`), so what this plugin
-accepts is a valid `blend.yaml`. Two things differ on purpose:
+A test checks both templates' manifests, and a Blend, against ACRYL's own JSON schema (copied from `runtime/blends-core`), so what
+this plugin accepts is a valid `blend.yaml`. ACRYL's lock format differs from ours: `npm run lock` writes `aimbrace.lock.json`
+(below), not a Blend lock.
 
-- An aimbrace app is a **Blueprint**. A **Blend** (an instance that has a `lineage` to its Blueprint, with `extends` and
-  `overrides`) is part of the format but is not read yet: the plugin reports it as `unsupported` and does not ignore it. How a Blend
-  upgrades from its Blueprint is the part ACRYL Blends adds on top of this prototype.
-- ACRYL's lock format differs from ours. `npm run lock` writes `aimbrace.lock.json` (below), not a Blend lock.
+## Blueprints and Blends
+
+A **Blueprint** is a definition others build on. A **Blend** is an instance of one: it declares which Blueprint and version it was
+made from, and resolves over it.
+
+```yaml
+apiVersion: blends.acryl.dev/v1alpha1
+kind: Blend
+metadata: { id: me.my-shop, name: my-shop, version: 0.1.0 }
+spec:
+  runtime: cordis
+  lineage: { blueprint: acme.shop, blueprintVersion: 1.0.0 }   # which Blueprint, at which version
+  overrides:                       # change inherited rows by id; a shallow merge, what you set wins
+    - id: server
+      config: { port: 8080 }
+    - id: routes
+      disabled: true
+  rows:                            # your own rows, added after the inherited ones
+    - id: cache
+      name: cache
+```
+
+An app finds its Blueprint in `blueprints/<id>.yaml` (`blueprints/acme.shop.yaml`). The rules are ACRYL's: the parent is `extends`, or
+a Blend's lineage Blueprint; a parent resolves with its own parameter defaults; an override must name a row the parent has
+(`override-unknown-id`); an own row must not reuse a parent row's id (`insert-id-collision`); a missing parent, a cycle, a Blend
+without lineage, a Blueprint with one, or overrides without a parent are each a diagnostic.
+
+## Upgrading a Blend
+
+ACRYL records a Blend's `lineage` but does not say what an upgrade is. The prototype's answer: **an upgrade is a plan before it is
+an action.**
+
+```sh
+npm run upgrade -- --from blueprints/acme.shop.yaml --to acme.shop-1.1.yaml          # the plan
+npm run upgrade -- --from blueprints/acme.shop.yaml --to acme.shop-1.1.yaml --apply  # and apply it, if it is safe
+```
+
+The plan resolves your Blend over the old and over the new Blueprint and reports:
+
+```text
+acme.shop: 1.0.0 -> 1.1.0
+the Blueprint changed:
+  added   metrics
+  changed routes (config)
+your overrides hide some of that:
+  server: port
+your app would change:
+  added   metrics
+  changed routes (config)
+safe to apply
+```
+
+- **The Blueprint changed**: rows added, removed, or changed in name, config or disabled.
+- **Your overrides hide**: Blueprint changes your overrides cancel, because you set the same key.
+- **Your app would change**: the rows your app actually mounts, before and after, so you see the effect and not only the diff.
+- **This Blend would break**: the conflicts, as the diagnostics above: an override of a row the new Blueprint removed, or an own row
+  whose id the new Blueprint now uses. An upgrade with conflicts is not safe and `--apply` refuses it.
+
+Applying a safe plan moves `spec.lineage.blueprintVersion` and nothing else (the file's comments stay), and puts the new Blueprint in
+`blueprints/`. Run `npm run lock` afterwards: the lock records the Blueprint's digest, so an upgrade is a lock diff.
 
 ## Diagnostics
 

@@ -46,15 +46,11 @@ test('stops listening when stopped', async () => {
 })
 
 test('the manifest decides what is mounted: a parameter changes the server, an unknown value is refused', async () => {
-  const { loadManifest } = await import('../src/plugins/manifest/index.ts')
-  const { MANIFEST, registry } = await import('../src/app.ts')
-  const manifest = loadManifest(MANIFEST, { known: Object.keys(registry) })
+  const { readManifest } = await import('../src/app.ts')
+  const manifest = readManifest()
   assert.deepEqual(
     manifest.plugins.map((row) => row.id),
     ['http', 'routes', 'server'],
   )
-  assert.throws(
-    () => loadManifest(MANIFEST, { values: { nothing: 1 } }),
-    /parameter-override-unknown/,
-  )
+  assert.throws(() => readManifest({ nothing: 1 }), /parameter-override-unknown/)
 })

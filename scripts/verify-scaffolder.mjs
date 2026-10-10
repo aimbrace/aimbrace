@@ -11,7 +11,15 @@
  * Needs the network for the install step. Fails on the first problem.
  */
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -301,6 +309,92 @@ try {
   if (capture('git', ['diff', '--cached', '--name-only'], { cwd: saved }).trim() !== '')
     fail('npm run save left files staged after refusing')
   log('save: committed the app, then refused a file holding a secret with nothing left staged')
+  // A Blend over a Blueprint, in a real app: it boots from its parent, an upgrade is planned and applied with the real npm scripts,
+  // and an upgrade that would break the Blend is refused with the file untouched.
+  const blended = join(scratch, 'blended')
+  capture(process.execPath, [cli, 'init', blended, '--name', 'verify-blend', '--yes', '--no-agent'])
+  const blueprintId = 'aimbrace.verify-blend'
+  const blueprintText = readFileSync(join(blended, 'blend.yaml'), 'utf8')
+  mkdirSync(join(blended, 'blueprints'))
+  writeFileSync(join(blended, 'blueprints', `${blueprintId}.yaml`), blueprintText)
+  const blendText = `apiVersion: blends.acryl.dev/v1alpha1
+kind: Blend
+metadata: { id: me.verify-blend, name: verify-blend, version: 0.1.0 }
+spec:
+  runtime: cordis
+  lineage: { blueprint: ${blueprintId}, blueprintVersion: 0.1.0 } # moves on upgrade
+  overrides:
+    - id: server
+      config: { hostname: 127.0.0.1 }
+`
+  writeFileSync(join(blended, 'blend.yaml'), blendText)
+  capture(npm, ['install', '--no-audit', '--no-fund'], { cwd: blended })
+  capture(npm, ['test'], { cwd: blended })
+  const blendHome = mkdtempSync(join(tmpdir(), 'verify-home-blend-'))
+  const blendChild = spawn(npm, ['start'], {
+    cwd: blended,
+    env: { ...process.env, AIMBRACE_HOME: blendHome, AIMBRACE_PORT: '0' },
+    shell: process.platform === 'win32',
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  try {
+    const blendUrl = await waitForUrl(blendChild)
+    const index = await json(await fetch(`${blendUrl}/`), 'blend: GET /')
+    if (index.app !== 'verify-blend') fail(`blend: GET / answered ${JSON.stringify(index)}`)
+  } finally {
+    await stopCleanly(blendChild)
+    rmSync(blendHome, { recursive: true, force: true })
+  }
+  writeFileSync(
+    join(blended, 'v0.2.yaml'),
+    blueprintText.replace('version: 0.1.0', 'version: 0.2.0'),
+  )
+  const withoutServer = blueprintText
+    .replace('version: 0.1.0', 'version: 0.3.0')
+    .replace(
+      / {4}- id: server\n {6}name: server\n {6}config:\n {8}hostname: "\{\{parameters\.hostname\}\}"\n/,
+      '',
+    )
+    // The server row was the only user of the hostname parameter, and an unused parameter makes a Blueprint invalid.
+    .replace(/ {2}parameters:\n(?: {4}#[^\n]*\n)? {4}hostname:[^\n]*\n/, '')
+  if (withoutServer.includes('id: server')) fail('blend: could not build the unsafe Blueprint')
+  writeFileSync(join(blended, 'v0.3.yaml'), withoutServer)
+  const oldBlueprint = join('blueprints', `${blueprintId}.yaml`)
+  const unsafe = spawnSync(
+    npm,
+    ['run', '--silent', 'upgrade', '--', '--from', oldBlueprint, '--to', 'v0.3.yaml', '--apply'],
+    { cwd: blended, encoding: 'utf8', shell: process.platform === 'win32' },
+  )
+  if (
+    unsafe.status === 0 ||
+    !/override targets row id 'server'/.test(unsafe.stdout) ||
+    !/NOT safe/.test(unsafe.stdout)
+  )
+    fail(`blend: an unsafe upgrade was not refused: ${unsafe.stdout}${unsafe.stderr}`)
+  if (readFileSync(join(blended, 'blend.yaml'), 'utf8') !== blendText)
+    fail('blend: a refused upgrade changed blend.yaml')
+  const safe = capture(
+    npm,
+    ['run', '--silent', 'upgrade', '--', '--from', oldBlueprint, '--to', 'v0.2.yaml', '--apply'],
+    { cwd: blended },
+  )
+  if (!/safe to apply/.test(safe) || !/applied: lineage is now/.test(safe))
+    fail(`blend: upgrade output: ${safe}`)
+  const upgraded = readFileSync(join(blended, 'blend.yaml'), 'utf8')
+  if (upgraded !== blendText.replace('blueprintVersion: 0.1.0', 'blueprintVersion: 0.2.0'))
+    fail(`blend: the upgrade changed more than the lineage version:\n${upgraded}`)
+  capture(npm, ['run', 'lock'], { cwd: blended })
+  const locked = JSON.parse(readFileSync(join(blended, 'aimbrace.lock.json'), 'utf8'))
+  if (
+    locked.lineage?.blueprintVersion !== '0.2.0' ||
+    !/^sha256:/.test(locked.lineage?.digest ?? '')
+  )
+    fail(`blend: the lock does not record the Blueprint: ${JSON.stringify(locked.lineage)}`)
+  capture(npm, ['test'], { cwd: blended })
+  log(
+    'blend: booted from its Blueprint, refused an upgrade that removes an overridden row, applied a safe one (only the lineage moved), and the lock records the Blueprint',
+  )
   // `aimbrace add` in a real app: the plugin, what it requires and its npm packages arrive, and the app still type-checks.
   const grown = join(scratch, 'grown')
   capture(process.execPath, [cli, 'init', grown, '--name', 'verify-grown', '--yes', '--no-agent'])

@@ -7,7 +7,12 @@ import { events } from './plugins/events/index.ts'
 import { extensions } from './plugins/extensions/index.ts'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
-import { compose, loadManifest, type ParameterValue } from './plugins/manifest/index.ts'
+import {
+  blueprintsIn,
+  compose,
+  loadManifest,
+  type ParameterValue,
+} from './plugins/manifest/index.ts'
 import { type OpenAIConfig, openai } from './plugins/openai/index.ts'
 import { sandboxPlugin } from './plugins/sandbox/index.ts'
 import { save } from './plugins/save/index.ts'
@@ -35,6 +40,18 @@ export const registry = {
 /** The manifest next to this app's source. */
 export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'blend.yaml')
 
+/**
+ * The app's manifest, resolved. A Blend finds its Blueprint in `blueprints/<id>.yaml`; an app that is itself a Blueprint never looks.
+ * `createApp` and the tests read it the same way.
+ */
+export function readManifest(values?: Readonly<Record<string, ParameterValue>>) {
+  return loadManifest(MANIFEST, {
+    known: Object.keys(registry),
+    getBlueprint: blueprintsIn(join(fileURLToPath(new URL('..', import.meta.url)), 'blueprints')),
+    ...(values ? { values } : {}),
+  })
+}
+
 export interface App {
   readonly root: Context
   readonly url: string
@@ -53,10 +70,7 @@ export async function createApp(
     model?: OpenAIConfig
   } = {},
 ): Promise<App> {
-  const manifest = loadManifest(MANIFEST, {
-    known: Object.keys(registry),
-    ...(options.values ? { values: options.values } : {}),
-  })
+  const manifest = readManifest(options.values)
   const extensionsDir = join(chosen.root, 'extensions')
   const root = new Context()
   const first = root.plugin(instance, chosen)

@@ -3,7 +3,12 @@ import { fileURLToPath } from 'node:url'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
-import { compose, loadManifest, type ParameterValue } from './plugins/manifest/index.ts'
+import {
+  blueprintsIn,
+  compose,
+  loadManifest,
+  type ParameterValue,
+} from './plugins/manifest/index.ts'
 import { server } from './plugins/server/index.ts'
 import { routes } from './routes.ts'
 
@@ -12,6 +17,18 @@ export const registry = { http, routes, server }
 
 /** The manifest next to this app's source. */
 export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'blend.yaml')
+
+/**
+ * The app's manifest, resolved. A Blend finds its Blueprint in `blueprints/<id>.yaml`; an app that is itself a Blueprint never looks.
+ * `createApp` and the tests read it the same way.
+ */
+export function readManifest(values?: Readonly<Record<string, ParameterValue>>) {
+  return loadManifest(MANIFEST, {
+    known: Object.keys(registry),
+    getBlueprint: blueprintsIn(join(fileURLToPath(new URL('..', import.meta.url)), 'blueprints')),
+    ...(values ? { values } : {}),
+  })
+}
 
 export interface App {
   readonly root: Context
@@ -24,10 +41,7 @@ export async function createApp(
   chosen: AppInstance,
   options: { values?: Readonly<Record<string, ParameterValue>> } = {},
 ): Promise<App> {
-  const manifest = loadManifest(MANIFEST, {
-    known: Object.keys(registry),
-    ...(options.values ? { values: options.values } : {}),
-  })
+  const manifest = readManifest(options.values)
   const root = new Context()
   const first = root.plugin(instance, chosen)
   await first.await()

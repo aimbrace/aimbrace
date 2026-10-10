@@ -97,7 +97,7 @@ from a route handler. A surface renders this stream instead of polling `GET /tas
 
 ## manifest
 
-Reads and validates `blend.yaml`, ACRYL's Blend format (a Blueprint with rows and parameters; inheritance is reported as `unsupported`).
+Reads and validates `blend.yaml`, ACRYL's Blend format: Blueprints, and Blends that resolve over them (`lineage`, `extends`, `overrides`), plus `planUpgrade` for moving a Blend to a newer Blueprint.
 
 `loadManifest(file, { known, values })`, `validate(document, known)`, `compose(root, manifest, registry, overrides)`,
 `lock(manifest, sources)`, and `npm run lock`. See [The app manifest](manifest.md).

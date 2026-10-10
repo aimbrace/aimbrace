@@ -12,7 +12,8 @@
     "test": "node --test",
     "check": "tsc --noEmit",
     "lock": "node src/plugins/manifest/lock.ts",
-    "save": "node src/plugins/save/cli.ts"
+    "save": "node src/plugins/save/cli.ts",
+    "upgrade": "node src/plugins/manifest/upgrade-cli.ts"
   },
   "dependencies": {},
   "devDependencies": {

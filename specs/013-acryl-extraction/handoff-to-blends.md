@@ -36,7 +36,7 @@ product on its own, and apps such as WebBoxes.ai are built by other agents on AC
 | `settings` | `acryl-settings` | ported as is; ACRYL's stays the reference |
 | `extensions` | `acryl-extension-context` (pnpm, Harness Loader, hot shim) | prototype minus pnpm and the Loader; lessons to feed back: structured results, `check`, restore-previous on every failure path |
 | `builder` + `agent` | the agent's `acryl_install_plugin` tool | one tool per step and an explicit state read-back worked well with a real model |
-| `manifest` (`blend.yaml`) | `blends-core` (`blend.yaml`: Blueprint and Blend, `extends`, overrides, lineage, parameters, lock) | converged: the prototype's file is a valid `blend.yaml` (a Blueprint with rows, parameters, diagnostics and a lock; checked against ACRYL's JSON schema). Missing on purpose: Blends (`lineage`, `extends`, `overrides`), reported as `unsupported` |
+| `manifest` (`blend.yaml`) | `blends-core` (`blend.yaml`: Blueprint and Blend, `extends`, overrides, lineage, parameters, lock) | converged: the prototype's file is a valid `blend.yaml`, and it resolves Blueprints and Blends with ACRYL's rules (extends, lineage, overrides by id, collisions, cycles), checked against ACRYL's JSON schema. Added by the prototype: `planUpgrade`, see below |
 | `save` | `app-persistence` | ported; ACRYL's stays the reference |
 | `tasks` | none (chat transcripts are the record) | new for ACRYL: see Pi Durable ideas |
 
@@ -64,7 +64,23 @@ optional behind interfaces.
 3. ~~Approval gate for extensions (C).~~ Done.
 4. ~~Permissions per extension and a child-process runner for untrusted ones (D).~~ Done for tools (sandbox); the network is the open part.
 5. ~~Event stream for observation (E).~~ Done.
-6. ~~Make the manifest a valid `blend.yaml`.~~ Done: the file is `blend.yaml` in `blends.acryl.dev/v1alpha1`, checked against ACRYL's own JSON schema. What remains is the part the prototype deliberately does not have: Blends (`lineage`, `extends`, `overrides`) and how a Blend upgrades from its Blueprint.
+6. ~~Make the manifest a valid `blend.yaml`, read Blends, and decide how a Blend upgrades.~~ Done: see "A proposal for ACRYL: upgrade as a plan".
+
+## A proposal for ACRYL: upgrade as a plan
+
+ACRYL's `lineage` records which Blueprint and version a Blend came from but not what moving to a newer version means. The prototype
+implements one answer (`plugins/manifest/upgrade.ts`, tested, and run end to end on a scaffolded app):
+
+1. Resolve the Blend over the old and over the new Blueprint, with ACRYL's own rules. The conflicts are ACRYL's existing diagnostics
+   (`override-unknown-id`, `insert-id-collision`); no new concept.
+2. Report four things: what the Blueprint changed, which of those changes the Blend's overrides hide, how the rows the app mounts
+   differ, and the conflicts. Only a plan without conflicts is safe.
+3. Applying is small: move `lineage.blueprintVersion`, keep the file as the owner wrote it, and record the Blueprint's digest in the
+   lock. The rows come from the Blueprint at resolution time, so nothing is copied into the Blend.
+
+Not decided: a Blueprint that also ships code (a plugin package) needs its own version pin and the same plan for the code; parameters
+the new Blueprint adds; a way to keep an unsafe upgrade moving by editing the overrides in the plan. All three need a real Blend that
+asks for them.
 
 Open question for the owner: whether the Blends framework keeps Cordis plugins as the only unit (this prototype says yes) while a
 Blueprint can still ship non-plugin assets (docs, data, templates).
