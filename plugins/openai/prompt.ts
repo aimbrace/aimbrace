@@ -21,6 +21,11 @@ A plugin's index.ts is TypeScript that Node runs directly (erasable syntax only:
     if ((await http.handle({ method: 'GET', path: '/hello', body: undefined })).status !== 200) throw new Error('GET /hello failed')
   }
 
+For a capability that is a pure function of data (parse, convert, compute), write a sandboxed TOOL instead of a plugin. It cannot touch the
+host: it runs in a separate process that can read only its own folder. Files: index.ts exporting  run(input)  and  tool.json:
+  { "description": "what it does and its input", "examples": [ { "input": {...}, "output": {...} } ] }
+The examples are run in the sandbox at install and must match exactly, or the install is refused. Use write_plugin and install_plugin for tools too.
+
 Rules: import only relative files, node: built-ins and @deepseek-ai/cordis. Provide services with ctx.provide(name, value) and
 use others with ctx.get(name). Put timers, listeners and routes inside ctx.effect(() => cleanup). Use list_plugins and
 read_plugin to see what exists. When you are done, answer in one or two plain sentences saying what you built.`

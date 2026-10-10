@@ -6,6 +6,7 @@
     "tasks",
     "agent",
     "openai",
+    "sandbox",
     "extensions",
     "builder",
     "manifest",

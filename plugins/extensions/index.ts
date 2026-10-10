@@ -27,8 +27,10 @@ import {
 } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { isDeepStrictEqual } from 'node:util'
 import { type Context, type Fiber, Service } from '@deepseek-ai/cordis'
 import type {} from '../instance/index.ts'
+import type { Sandbox } from '../sandbox/index.ts'
 import { appendLedger, type LedgerEntry, readLedger } from './ledger.ts'
 import { resolveFromApp } from './resolve.ts'
 import { hashFolder, prune, stage } from './stage.ts'
@@ -390,7 +392,79 @@ export class Extensions extends Service {
     return { name, dir, errors }
   }
 
+  /**
+   * A tool folder (`tool.json` next to an `index.ts` that exports `run(input)`) is code we do not trust, so it is never imported
+   * here. It becomes a generated plugin that registers a tool whose every call runs in the sandbox, and whose examples run in the
+   * sandbox as the install's self-check. `tool.json`: `{ "description": "...", "examples": [{ "input": ..., "output": ... }] }`.
+   */
+  private toolModule(dir: string, name: string): PluginModule | undefined {
+    const file = join(dir, 'tool.json')
+    if (!existsSync(file)) return undefined
+    let spec: { description?: unknown; examples?: unknown; timeoutMs?: unknown }
+    try {
+      spec = JSON.parse(readFileSync(file, 'utf8'))
+    } catch (error) {
+      throw new Error(`tool.json is not valid JSON: ${message(error)}`)
+    }
+    if (typeof spec.description !== 'string' || spec.description.trim() === '')
+      throw new Error('tool.json needs a "description"')
+    const examples = spec.examples
+    if (
+      !Array.isArray(examples) ||
+      examples.length === 0 ||
+      !examples.every(
+        (example) =>
+          example && typeof example === 'object' && 'input' in example && 'output' in example,
+      )
+    ) {
+      throw new Error(
+        'tool.json needs "examples": a non-empty list of { "input": ..., "output": ... }; they are run in the sandbox when the tool is installed',
+      )
+    }
+    const timeoutMs =
+      typeof spec.timeoutMs === 'number' ? Math.min(Math.max(spec.timeoutMs, 100), 30_000) : 5000
+    const entry = ENTRIES.map((candidate) => join(dir, candidate)).find((path) =>
+      existsSync(path),
+    ) as string
+    const description = spec.description
+    const run = (ctx: Context, input: unknown) =>
+      // `get`, not `ctx.sandbox`: the self-check runs from the service's own context, which does not declare the dependency.
+      ((ctx.get as (service: string) => unknown)('sandbox') as Sandbox)
+        .run(entry, input, { timeoutMs })
+        .then((result) => {
+          if (!result.ok) throw new Error(`${result.kind}: ${result.error}`)
+          return result.output
+        })
+    return {
+      name,
+      inject: ['tools', 'sandbox'],
+      apply: ((ctx: Context) => {
+        const tools = (ctx.get as (service: string) => unknown)('tools') as {
+          register(
+            tool: string,
+            definition: { description: string; run(input: unknown): unknown },
+          ): () => void
+        }
+        ctx.effect(() => tools.register(name, { description, run: (input) => run(ctx, input) }))
+      }) as PluginModule['apply'],
+      check: async (ctx: Context) => {
+        for (const [index, example] of (
+          examples as Array<{ input: unknown; output: unknown }>
+        ).entries()) {
+          const actual = await run(ctx, example.input)
+          if (!isDeepStrictEqual(actual, example.output)) {
+            throw new Error(
+              `example ${index + 1} expected ${JSON.stringify(example.output)} but the tool returned ${JSON.stringify(actual)}`,
+            )
+          }
+        }
+      },
+    }
+  }
+
   private async load(dir: string, name: string): Promise<PluginModule> {
+    const tool = this.toolModule(dir, name)
+    if (tool) return tool
     const entry = ENTRIES.map((file) => join(dir, file)).find((path) => existsSync(path)) as string
     const module = (await import(pathToFileURL(entry).href)) as Partial<PluginModule> & {
       default?: Partial<PluginModule>

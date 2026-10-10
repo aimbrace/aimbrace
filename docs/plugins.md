@@ -11,6 +11,7 @@ against a real Cordis context, including disposal.
 | [settings](#settings) | `settings` | `plugins/acryl-settings` |
 | [extensions](#extensions) | `extensions` | `plugins/acryl-extension-context` |
 | [builder](#builder) | tools for the agent | the agent's install tools |
+| [sandbox](#sandbox) | `sandbox` | - |
 | [agent](#agent) | `agent`, `model`, `tools`, `memory` | - |
 | [openai](#openai) | `model` (a real one) | - |
 | [tasks](#tasks) | `tasks` | idea from Pi Durable |
@@ -43,6 +44,14 @@ them in order; an unchanged value notifies nobody; pending writes settle on disp
 Install, update, remove and reload Cordis plugins while the app runs: `ctx.extensions.install(folder)`, `remove(name)`,
 `reload()`, `list()`, `pending()`, `ledger()`. A failed update brings the previous version back. Config: `{ sources: [{
 dir, trust: 'install' | 'list' }] }`. Details in [Extending a running app](extending-apps.md).
+
+## sandbox
+
+`ctx.sandbox.run(entry, input, { timeoutMs, memoryMb, read })` runs a file that exports `run(input)` in a separate Node process
+under the permission model (`node --permission`): it can read only its own folder; it cannot write files, start processes or
+workers, or load native addons; it gets an empty environment; it is killed after a time limit and capped in memory and output.
+It never throws: failures are results (`denied`, `timeout`, `output`, `crash`, `error`). **It does not block the network**: Node 24
+has no network permission, so restrict egress outside the process where that matters.
 
 ## builder
 

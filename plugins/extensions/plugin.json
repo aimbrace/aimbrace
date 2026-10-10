@@ -1,7 +1,7 @@
 {
   "name": "extensions",
   "description": "Install, update, remove and reload plugins while the app runs; a failed update brings the previous version back; a ledger of every change.",
-  "requires": ["instance", "digest"],
+  "requires": ["instance", "digest", "sandbox"],
   "inject": ["appInstance"],
   "provides": ["extensions"],
   "dependencies": {

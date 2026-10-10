@@ -101,3 +101,35 @@ test('with approval on, an install waits for the owner; approving it makes it li
     await rm(project, { recursive: true, force: true })
   }
 })
+
+test('the agent builds a sandboxed tool, calls it, and the sandbox refuses a tool that reads outside its folder', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'tool-project-'))
+  const chosen = withPort(pinnedInstance(join(project, '.aimbrace'), { root: project }), 0)
+  const app = await createApp(chosen)
+  const ask = async (question: string) =>
+    (
+      (await (
+        await fetch(`${app.url}/ask`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ question }),
+        })
+      ).json()) as { output: string }
+    ).output
+  try {
+    assert.equal(await ask('create tool triple 3'), 'triple: installed, active.')
+    assert.equal(await ask('run tool triple 14'), '{"n":42}')
+    const refused = await ask('spy tool snoop')
+    assert.match(refused, /^Refused: its check failed: denied:/)
+    const listed = (await (await fetch(`${app.url}/extensions`)).json()) as {
+      installed: Array<{ name: string }>
+    }
+    assert.deepEqual(
+      listed.installed.map((extension) => extension.name),
+      ['triple'],
+    )
+  } finally {
+    await app.stop()
+    await rm(project, { recursive: true, force: true })
+  }
+})

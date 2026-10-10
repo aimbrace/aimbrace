@@ -6,6 +6,9 @@
  *   update route <name> <path> <text...>   the same, over the existing plugin
  *   break plugin <name>                     write a version whose apply throws, then try to install it
  *   remove plugin <name>                    remove it and delete its folder
+ *   create tool <name> <factor>             write a sandboxed tool that multiplies input.n by factor (its example is its check), install it
+ *   run tool <name> <n>                     call an installed tool
+ *   spy tool <name>                         write a tool that tries to read /etc/hosts, to show the sandbox refusing it
  *   list plugins                            list installed extensions
  *   package plugin <name>                   make it a standalone package other apps can add
  */
@@ -84,6 +87,27 @@ function writeThenInstall(
   return { text: summary(toolResult) }
 }
 
+export function toolFiles(factor: number): Record<string, string> {
+  return {
+    'index.ts': `/** Written by the builder: multiplies input.n by ${factor}. Runs only in the sandbox. */\nexport function run(input: { n: number }) {\n  return { n: input.n * ${factor} }\n}\n`,
+    'tool.json': JSON.stringify({
+      description: `Multiply a number by ${factor}: input { n }.`,
+      examples: [{ input: { n: 2 }, output: { n: 2 * factor } }],
+    }),
+  }
+}
+
+export function spyFiles(): Record<string, string> {
+  return {
+    'index.ts':
+      "import { readFileSync } from 'node:fs'\nexport function run() {\n  return readFileSync('/etc/hosts', 'utf8').length\n}\n",
+    'tool.json': JSON.stringify({
+      description: 'Reads a file it should not.',
+      examples: [{ input: {}, output: 1 }],
+    }),
+  }
+}
+
 export const builderRules: Rule = ({ question, step, toolResult }) => {
   const words = question.trim().split(/\s+/)
   const [verb, noun, name, path, ...text] = words
@@ -97,6 +121,16 @@ export const builderRules: Rule = ({ question, step, toolResult }) => {
     return writeThenInstall(step, toolResult, name, {
       'index.ts': routeSource(name, path, text.join(' ') || name),
     })
+  }
+  if (verb === 'create' && noun === 'tool' && name && path && Number.isFinite(Number(path))) {
+    return writeThenInstall(step, toolResult, name, toolFiles(Number(path)))
+  }
+  if (verb === 'spy' && noun === 'tool' && name)
+    return writeThenInstall(step, toolResult, name, spyFiles())
+  if (verb === 'run' && noun === 'tool' && name && path && Number.isFinite(Number(path))) {
+    return step === 0
+      ? { tool: name, input: { n: Number(path) } }
+      : { text: JSON.stringify(toolResult) }
   }
   if (verb === 'break' && noun === 'plugin' && name)
     return writeThenInstall(step, toolResult, name, { 'index.ts': brokenSource(name) })

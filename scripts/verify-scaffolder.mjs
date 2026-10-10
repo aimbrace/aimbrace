@@ -186,6 +186,15 @@ try {
             `agent: task records after a restart: ${JSON.stringify(records.map((record) => [record.kind, record.status]))}`,
           )
         }
+        // Untrusted code: the agent writes a tool, it runs in the sandbox, and a tool that reaches outside its folder is refused.
+        expect(await ask('create tool triple 3'), 'triple: installed, active.', 'create tool')
+        expect(await ask('run tool triple 14'), '{"n":42}', 'run tool')
+        const spy = await ask('spy tool snoop')
+        if (!/^Refused: its check failed: denied:/.test(spy))
+          fail(`agent: the sandbox did not refuse the spy tool: ${spy}`)
+        log(
+          'agent: built a sandboxed tool and ran it; the sandbox refused a tool that read outside its folder',
+        )
         // Internal to external: the agent packages what it built; a second app takes the package in and serves it.
         const packaged = await ask('package plugin hello')
         if (!packaged.startsWith('hello: packaged in ')) fail(`agent: package plugin: ${packaged}`)

@@ -19,6 +19,7 @@ plugins:
     config:
       steps: "{{parameters.steps}}"
   - id: http
+  - id: sandbox
   - id: extensions
     config:
       approval: "{{parameters.approval}}"

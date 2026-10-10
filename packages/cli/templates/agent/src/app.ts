@@ -8,6 +8,7 @@ import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
 import { compose, loadManifest, type ParameterValue } from './plugins/manifest/index.ts'
 import { type OpenAIConfig, openai } from './plugins/openai/index.ts'
+import { sandboxPlugin } from './plugins/sandbox/index.ts'
 import { save } from './plugins/save/index.ts'
 import { server } from './plugins/server/index.ts'
 import { tasks } from './plugins/tasks/index.ts'
@@ -24,6 +25,7 @@ export const registry = {
   extensions,
   builder,
   save,
+  sandbox: sandboxPlugin,
   routes,
   server,
 }
