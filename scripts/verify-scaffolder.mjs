@@ -186,6 +186,37 @@ try {
             `agent: task records after a restart: ${JSON.stringify(records.map((record) => [record.kind, record.status]))}`,
           )
         }
+        // One place to observe: the event stream reported the run and the install above, as they happened.
+        const stream = await fetch(`${url}/events`, { signal: AbortSignal.timeout(20_000) })
+        const reader = stream.body.getReader()
+        const watching = (async () => {
+          let text = ''
+          for await (const chunk of (async function* () {
+            for (;;) {
+              const { value, done } = await reader.read()
+              if (done) return
+              yield new TextDecoder().decode(value)
+            }
+          })()) {
+            text += chunk
+            if (
+              /event: extensions\/changed\ndata: \{"args":\["observed","installed"\]\}/.test(text)
+            )
+              return text
+          }
+          return text
+        })()
+        expect(
+          await ask('create route observed /observed Seen'),
+          'observed: installed, active.',
+          'create (observed)',
+        )
+        const streamed = await watching
+        await reader.cancel().catch(() => undefined)
+        if (!/event: tasks\/changed/.test(streamed))
+          fail(`GET /events did not report the task: ${streamed.slice(0, 300)}`)
+        await ask('remove plugin observed')
+        log('agent: GET /events streamed the task and the install as they happened')
         // Untrusted code: the agent writes a tool, it runs in the sandbox, and a tool that reaches outside its folder is refused.
         expect(await ask('create tool triple 3'), 'triple: installed, active.', 'create tool')
         expect(await ask('run tool triple 14'), '{"n":42}', 'run tool')

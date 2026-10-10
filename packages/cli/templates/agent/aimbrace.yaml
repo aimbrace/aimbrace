@@ -22,6 +22,9 @@ plugins:
     config:
       steps: "{{parameters.steps}}"
   - id: http
+  - id: events
+    config:
+      topics: [tasks/changed, extensions/changed]
   - id: sandbox
   - id: extensions
     config:

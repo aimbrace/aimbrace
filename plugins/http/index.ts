@@ -8,9 +8,17 @@ export interface RouteRequest {
 }
 
 /** What a route answers. The status defaults to 200; the body is sent as JSON. */
+/** Sends one server-sent event: `topic` is the event name, `data` is sent as JSON. */
+export type Send = (topic: string, data: unknown) => void
+
+/** A live stream: called when a client connects, it returns what to run when the client leaves. */
+export type Stream = (send: Send) => () => void
+
 export interface Reply {
   readonly status?: number
   readonly body: unknown
+  /** Answer with a stream of server-sent events instead of a JSON body. */
+  readonly stream?: Stream
 }
 
 export type Handler = (request: RouteRequest) => Reply | Promise<Reply>
@@ -20,7 +28,7 @@ export interface Http {
   /** Add a route. Returns the function that removes it, so it can be the disposer of a `ctx.effect`. */
   route(method: string, path: string, handler: Handler): () => void
   /** Answer a request from the registered routes, 404 when none matches. */
-  handle(request: RouteRequest): Promise<{ status: number; body: unknown }>
+  handle(request: RouteRequest): Promise<{ status: number; body: unknown; stream?: Stream }>
   /** The registered routes, as `METHOD /path`. */
   list(): string[]
 }
@@ -45,7 +53,11 @@ export function http(ctx: Context) {
       const handler = routes.get(`${request.method.toUpperCase()} ${request.path}`)
       if (!handler) return { status: 404, body: { error: 'not found' } }
       const reply = await handler(request)
-      return { status: reply.status ?? 200, body: reply.body }
+      return {
+        status: reply.status ?? 200,
+        body: reply.body,
+        ...(reply.stream ? { stream: reply.stream } : {}),
+      }
     },
     list: () => [...routes.keys()].sort(),
   } satisfies Http)

@@ -15,6 +15,7 @@ against a real Cordis context, including disposal.
 | [agent](#agent) | `agent`, `model`, `tools`, `memory` | - |
 | [openai](#openai) | `model` (a real one) | - |
 | [tasks](#tasks) | `tasks` | idea from Pi Durable |
+| [events](#events) | a route | idea from Pi Durable |
 | [manifest](#manifest) | functions, no service | `runtime/blends-core` |
 | [save](#save) | a tool for the agent | `runtime/app-persistence` |
 | [digest](#digest) | a function | - |
@@ -86,6 +87,13 @@ an abort `signal`. Every change is appended to `<home>/tasks.jsonl` before the c
 tasks it owns too. After a crash, a task that was running is marked `interrupted` and is never run again on its own,
 because a side effect may already have happened. When `tasks` is mounted, every agent run is a task owning one task per
 tool call.
+
+## events
+
+`GET /events` as a stream of server-sent events. Config: `{ topics: ['tasks/changed', 'extensions/changed'], path }`. The SSE event
+name is the Cordis event, the data is `{ "args": [...] }`, ids rise, a keepalive comment goes out every 15 s, and a connection's
+listeners are removed when the client leaves. Any route can answer with a stream: return `{ body: null, stream: (send) => cleanup }`
+from a route handler. A surface renders this stream instead of polling `GET /tasks`.
 
 ## manifest
 

@@ -1,7 +1,12 @@
-import { createServer, type IncomingMessage, type Server as NodeServer } from 'node:http'
+import {
+  createServer,
+  type IncomingMessage,
+  type Server as NodeServer,
+  type ServerResponse,
+} from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '../http/index.ts'
+import type { Send, Stream } from '../http/index.ts'
 
 /** Where the server listens. Passed as this plugin's Cordis config. */
 export interface ServerConfig {
@@ -54,6 +59,38 @@ function listen(listener: NodeServer, port: number, hostname: string): Promise<v
   })
 }
 
+const KEEPALIVE_MS = 15_000
+
+/**
+ * Answer with server-sent events. Each event has a rising `id`, a `topic` as its event name and JSON `data`; a comment line every 15 s
+ * keeps proxies from closing an idle stream. When the client leaves (or the server stops) the stream's own cleanup runs.
+ */
+function openStream(request: IncomingMessage, response: ServerResponse, stream: Stream): void {
+  response.writeHead(200, {
+    'content-type': 'text/event-stream',
+    'cache-control': 'no-cache',
+    connection: 'keep-alive',
+  })
+  response.write(': connected\n\n')
+  let id = 0
+  let open = true
+  const send: Send = (topic, data) => {
+    if (!open) return
+    id += 1
+    response.write(`id: ${id}\nevent: ${topic}\ndata: ${JSON.stringify(data)}\n\n`)
+  }
+  const leave = stream(send)
+  const keepalive = setInterval(() => response.write(': keepalive\n\n'), KEEPALIVE_MS)
+  const close = () => {
+    if (!open) return
+    open = false
+    clearInterval(keepalive)
+    leave()
+  }
+  request.on('close', close)
+  response.on('close', close)
+}
+
 /** Serves the `http` router with Node's own `node:http`. The returned disposer closes the server. */
 export const server = {
   name: 'server',
@@ -74,6 +111,7 @@ export const server = {
           path,
           body: parsed.body,
         })
+        if (reply.stream) return openStream(request, response, reply.stream)
         send(reply.status, reply.body)
       } catch (error) {
         send(500, { error: error instanceof Error ? error.message : String(error) })

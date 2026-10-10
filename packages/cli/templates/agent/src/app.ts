@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { agent, memory, model, tools } from './plugins/agent/index.ts'
 import { builder } from './plugins/builder/index.ts'
+import { events } from './plugins/events/index.ts'
 import { extensions } from './plugins/extensions/index.ts'
 import { http } from './plugins/http/index.ts'
 import { type AppInstance, instance } from './plugins/instance/index.ts'
@@ -22,6 +23,7 @@ export const registry = {
   memory,
   agent,
   http,
+  events,
   extensions,
   builder,
   save,

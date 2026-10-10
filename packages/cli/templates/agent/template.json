@@ -2,6 +2,7 @@
   "plugins": [
     "instance",
     "http",
+    "events",
     "server",
     "tasks",
     "agent",

@@ -52,7 +52,7 @@ optional behind interfaces.
 | **B. A first-class durable task contract** (identity, owner, input, status, checkpoint, result, error, retry, cancel, timestamps), backend-independent | done for storage: `tasks` has identity, owner, input, status, result, error, cancel, timestamps, progress, over a `TaskStore` interface with JSONL and SQLite backends passing one conformance suite. Still missing: retry policy, checkpoints, idempotency keys | a Pi Durable adapter would implement `TaskStore` (or replace `tasks` behind the same service), after a real app needs retries |
 | **C. An evolution transaction:** propose, generate, validate, stage, test, approve, activate, record lineage; failure restores the last known good | done: check, stage, import, start, self-check, approve, record, restore; *propose* is the agent's own write | done: `approval: true` makes installs wait for `approve` or `deny`, per exact version, recorded in the ledger |
 | **D. An execution policy:** generated code requests a capability and is granted only that; local first, container or micro-VM later | two trust levels: a *plugin* is trusted (approval gate), a *tool* is untrusted and runs only in the `sandbox` (a child process under `node --permission`: reads only its folder, no processes, no env, time and memory limits), with its examples as the install check. **Not covered: the network** (Node 24 has none) | a Gondolin-style micro-VM or container egress policy behind the same `sandbox` interface, when a hosted tenant needs network control |
-| **E. One place to observe:** desktop, web and TUI render the same task ids, graph, outputs, decisions | `GET /tasks`, `GET /extensions`, the ledger | an event stream (server-sent events) from `tasks/changed` and `extensions/changed`, so a surface renders state instead of polling |
+| **E. One place to observe:** desktop, web and TUI render the same task ids, graph, outputs, decisions | `GET /tasks`, `GET /extensions`, the ledger, and the `GET /events` stream | done: the `events` plugin streams `tasks/changed` and `extensions/changed` as server-sent events; a surface renders state instead of polling |
 | **Commit before "done"** | extension records and task records are written before the answer returns | keep as a rule for every new plugin |
 | **Side effects are not exactly-once** | interrupted tasks are reported, never re-run | add idempotency keys to the task contract before any tool with an external effect exists |
 | **Absurd (database workflows), Gondolin (micro-VMs), Pi Durable as a backend** | not adopted | only behind the interfaces above, after a real app asks |
@@ -63,7 +63,7 @@ optional behind interfaces.
 2. ~~The task contract as a type plus a SQLite backend and a conformance test (B).~~ Done (storage); retry and checkpoints wait for a real need.
 3. ~~Approval gate for extensions (C).~~ Done.
 4. ~~Permissions per extension and a child-process runner for untrusted ones (D).~~ Done for tools (sandbox); the network is the open part.
-5. Event stream for observation (E).
+5. ~~Event stream for observation (E).~~ Done.
 6. Make `aimbrace.yaml` a strict subset of `blend.yaml` and read both with one parser, then decide how a Blend upgrades from
    its Blueprint (the part the prototype deliberately does not have).
 

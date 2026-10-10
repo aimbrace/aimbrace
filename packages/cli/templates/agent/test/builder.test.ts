@@ -133,3 +133,54 @@ test('the agent builds a sandboxed tool, calls it, and the sandbox refuses a too
     await rm(project, { recursive: true, force: true })
   }
 })
+
+test('GET /events streams what happens: the run as a task, and the install as an extension change', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'events-project-'))
+  const chosen = withPort(pinnedInstance(join(project, '.aimbrace'), { root: project }), 0)
+  const app = await createApp(chosen)
+  const controller = new AbortController()
+  try {
+    const stream = await fetch(`${app.url}/events`, { signal: controller.signal })
+    const reader = stream.body!.getReader()
+    const decoder = new TextDecoder()
+    let text = ''
+    const seen = (what: RegExp) => what.test(text)
+    const pump = (async () => {
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) return
+        text += decoder.decode(value, { stream: true })
+      }
+    })().catch(() => undefined)
+    await fetch(`${app.url}/ask`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question: 'create route hello /hello Hello' }),
+    })
+    for (
+      let waited = 0;
+      waited < 3000 && !seen(/event: extensions\/changed\ndata: [^\n]*"installed"/);
+      waited += 25
+    ) {
+      await new Promise((done) => setTimeout(done, 25))
+    }
+    assert.ok(seen(/event: connected/), 'connected')
+    assert.ok(
+      seen(/event: tasks\/changed\ndata: [^\n]*"kind":"agent-run"[^\n]*"status":"running"/),
+      'the run starts as a task',
+    )
+    assert.ok(
+      seen(/event: tasks\/changed\ndata: [^\n]*"kind":"tool:install_plugin"/),
+      'the install is a task',
+    )
+    assert.ok(
+      seen(/event: extensions\/changed\ndata: \{"args":\["hello","installed"\]\}/),
+      'the extension is reported',
+    )
+    controller.abort()
+    await pump
+  } finally {
+    await app.stop()
+    await rm(project, { recursive: true, force: true })
+  }
+})
