@@ -7,9 +7,11 @@ Each task is a branch of ACRYL. A task closes when its evidence exists on that b
   99 green, `check:layout` green. Local only: not pushed, not on `main`, awaiting the owner's review.
 - [x] T301 (macOS) Sandbox spike: `--permission` works under Electron-as-Node, identically to Node; see `t301-sandbox-spike.md`.
   Open: Windows and Linux packaged builds, and the `ELECTRON_RUN_AS_NODE` hazard the port must handle.
-- [ ] T302 `plugins/acryl-sandbox` and the `tool` kind (depends on T301). Design input from T303: the Harness already has `ctx.sandbox`
-  (write confinement per OS). The runner is the Node permission child, wrapped by `ctx.sandbox.confine(argv, read-only)` when present, with
-  `ELECTRON_RUN_AS_NODE=1` set and its enforcement level reported.
+- [x] T302 `acryl-tool-sandbox` and the sandboxed tool kind, done on the ACRYL branch `tool-sandbox` (worktree `.worktrees/tool-sandbox`), commits
+  `5952e954` (package), `fd8c3ee9` (kind in `acryl-extension-context`, opt-in `tool-sandbox` Blueprint row), `2b559c95` (log). Named `toolSandbox` because
+  the Harness owns `ctx.sandbox`; composes with it (`confine` read-only, enforcement reported, fail closed); `ELECTRON_RUN_AS_NODE=1` under Electron,
+  tested. Proven on a real engine boot (install, call, update, escaping tool refused, remove, restart) and on the real macOS Seatbelt profile.
+  Local only: not pushed, not on `main`. Open: Windows and Linux runs, router mention, no network isolation.
 - [x] T303 Compare `tasks` with Harness `jobs`; decided, see `t303-jobs-comparison.md`: not ported as a second concept; the durable part,
   if ever wanted, is a second provider of the `JobRegistry` seam; deferred until a consumer needs cross-restart jobs.
 - [ ] T304 Extension `check` and approval gate, designed with ACRYL's extension manifest.
