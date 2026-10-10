@@ -9,9 +9,12 @@ metadata:
 parameters:
   hostname: { type: string, default: 127.0.0.1, description: The address the server listens on. }
   steps: { type: number, default: 6, description: Steps an agent run may take. }
+  taskStore: { type: string, default: jsonl, description: Where task records are kept - jsonl (a text file) or sqlite. }
   approval: { type: boolean, default: false, description: When true, a plugin the agent installs waits for POST /extensions/approve. }
 plugins:
   - id: tasks
+    config:
+      store: "{{parameters.taskStore}}"
   - id: model
   - id: tools
   - id: memory

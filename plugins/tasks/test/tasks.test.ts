@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict'
-import { appendFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, test } from 'node:test'
 import { Context } from '@deepseek-ai/cordis'
 import { instance, pinnedInstance } from '../../instance/index.ts'
 import { tasks } from '../index.ts'
+import { openStore, type StoreKind } from '../store.ts'
+
+/** Which backend this run uses: tasks.sqlite.test.ts runs this whole file again against SQLite. */
+const KIND = (process.env.TASKS_TEST_STORE ?? 'jsonl') as StoreKind
 
 const cleanup: Array<() => Promise<void> | void> = []
 afterEach(async () => {
@@ -14,7 +18,7 @@ afterEach(async () => {
 
 async function boot(home = mkdtempSync(join(tmpdir(), 'tasks-test-'))) {
   const root = new Context()
-  const fibers = [root.plugin(instance, pinnedInstance(home)), root.plugin(tasks)]
+  const fibers = [root.plugin(instance, pinnedInstance(home)), root.plugin(tasks, { store: KIND })]
   for (const fiber of fibers) await fiber.await()
   const stop = async () => {
     for (const fiber of [...fibers].reverse()) await fiber.dispose()
@@ -26,7 +30,12 @@ test('a task is recorded before start returns, and its result before complete re
   const { root, home, stop } = await boot()
   cleanup.push(stop, () => rmSync(home, { recursive: true, force: true }))
   const task = root.tasks.start('build', { what: 'hello' })
-  assert.match(readFileSync(join(home, 'tasks.jsonl'), 'utf8'), new RegExp(task.id))
+  // On disk before start returns: a second reader of the same store already sees it.
+  assert.ok(
+    openStore(KIND, home)
+      .store.load()
+      .some((change) => change.id === task.id),
+  )
   task.complete({ ok: true }, { steps: 2 })
   const record = root.tasks.get(task.id)
   assert.deepEqual(
@@ -59,7 +68,7 @@ test('after a restart, records are back and work that was running is marked inte
   done.complete('ok')
   first.root.tasks.start('deploy', {})
   // Simulate a crash: the process ends without disposing, and the last line is torn.
-  appendFileSync(join(home, 'tasks.jsonl'), '{"id":"torn"')
+  if (KIND === 'jsonl') appendFileSync(join(home, 'tasks.jsonl'), '{"id":"torn"')
   const second = await boot(home)
   cleanup.push(second.stop)
   assert.equal(second.root.tasks.get(done.id)?.status, 'completed')
@@ -90,12 +99,16 @@ test('every task carries the digest of the manifest the app was composed from', 
   const root = new Context()
   const fibers = [
     root.plugin(instance, pinnedInstance(home)),
-    root.plugin(tasks, { manifest: 'sha256:abc' }),
+    root.plugin(tasks, { manifest: 'sha256:abc', store: KIND }),
   ]
   for (const fiber of fibers) await fiber.await()
   const task = root.tasks.start('build', {})
   assert.equal(root.tasks.get(task.id)?.manifest, 'sha256:abc')
-  assert.match(readFileSync(join(home, 'tasks.jsonl'), 'utf8'), /"manifest":"sha256:abc"/)
+  assert.ok(
+    openStore(KIND, home)
+      .store.load()
+      .some((change) => change.manifest === 'sha256:abc'),
+  )
   task.complete('ok')
   for (const fiber of [...fibers].reverse()) await fiber.dispose()
 })

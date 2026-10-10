@@ -77,6 +77,10 @@ extension contract. In the `agent` template, set `AIMBRACE_MODEL_URL`, `AIMBRACE
 
 ## tasks
 
+Records live in a store behind a small interface (`load`, `append`, `close`): a JSON lines file by default, or a SQLite file
+(`store: sqlite`, using Node's built-in `node:sqlite`, with full-durability writes). Both pass the same conformance suite, and the
+whole tasks test file runs against each. In the agent template this is the `taskStore` parameter of `aimbrace.yaml`.
+
 Durable task records: `ctx.tasks.start(kind, input, { parent })` returns a handle with `complete`, `fail`, `progress` and
 an abort `signal`. Every change is appended to `<home>/tasks.jsonl` before the call returns. `cancel(id)` cancels the
 tasks it owns too. After a crash, a task that was running is marked `interrupted` and is never run again on its own,

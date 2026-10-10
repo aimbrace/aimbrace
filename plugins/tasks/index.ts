@@ -9,14 +9,15 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { type Context, Service } from '@deepseek-ai/cordis'
 import type {} from '../instance/index.ts'
+import { openStore, type StoreKind, type TaskChange, type TaskStore } from './store.ts'
 
 export interface TasksConfig {
   /** Recorded on every task: the digest of the manifest the app was composed from. */
   manifest?: string
+  /** Where changes are kept: a JSON lines file (default) or a SQLite file. */
+  store?: StoreKind
 }
 
 export type TaskStatus = 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
@@ -66,6 +67,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 type Change = Partial<TaskRecord> & { readonly id: string }
+const changeOf = (change: TaskChange) => change as unknown as Change
 
 const FINAL: ReadonlySet<TaskStatus> = new Set(['completed', 'failed', 'cancelled', 'interrupted'])
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
@@ -77,12 +79,17 @@ export class Tasks extends Service {
   private readonly records = new Map<string, TaskRecord>()
   private readonly controllers = new Map<string, AbortController>()
 
+  private readonly store: TaskStore
   private readonly manifest: string | undefined
 
   constructor(ctx: Context, config: TasksConfig = {}) {
     super(ctx, 'tasks')
     this.manifest = config.manifest
-    this.file = join(ctx.appInstance.home, 'tasks.jsonl')
+    const opened = openStore(config.store ?? 'jsonl', ctx.appInstance.home)
+    this.file = opened.file
+    this.store = opened.store
+    // Disposers run newest first, so this one runs last: the store closes after pending work has been recorded.
+    ctx.effect(() => () => this.store.close(), 'tasks: close the store')
     this.load()
     const interrupted: string[] = []
     for (const record of this.records.values()) {
@@ -197,8 +204,7 @@ export class Tasks extends Service {
   private write(change: Change): void {
     const now = new Date().toISOString()
     const line = { updatedAt: now, ...change }
-    mkdirSync(join(this.file, '..'), { recursive: true })
-    appendFileSync(this.file, `${JSON.stringify(line)}\n`)
+    this.store.append(line)
     const record = this.apply(line)
     this.ctx.emit('tasks/changed', record)
   }
@@ -212,15 +218,7 @@ export class Tasks extends Service {
   }
 
   private load(): void {
-    if (!existsSync(this.file)) return
-    for (const line of readFileSync(this.file, 'utf8').split('\n')) {
-      if (line.trim() === '') continue
-      try {
-        this.apply(JSON.parse(line) as Change)
-      } catch {
-        // A torn last line (the app stopped mid-write) is skipped; every complete line before it still counts.
-      }
-    }
+    for (const change of this.store.load()) this.apply(changeOf(change))
   }
 }
 
