@@ -14,7 +14,7 @@ curl -X POST <url>/ask -H 'content-type: application/json' -d '{"question":"add 
 ```
 
 - `src/main.ts` chooses where the app lives (`src/plugins/instance`) and starts it.
-- `aimbrace.yaml` is the app as data: which plugins it mounts, in what order, with what config and parameters. Switch
+- `blend.yaml` is the app as data: which plugins it mounts, in what order, with what config and parameters. Switch
   one off with `disabled: true`. `npm run lock` writes `aimbrace.lock.json`: the manifest's digest and a digest of
   every plugin folder, so a diff of the lock shows what changed.
 - `src/app.ts` holds the registry of plugins the code provides, and mounts the manifest's rows.
@@ -46,7 +46,7 @@ Other commands: `update route <name> <path> <text>`, `break plugin <name>` (show
   Add more with `aimbrace add <plugin>`.
 
 `npm run save -- "message"` commits the app with git (and pushes when it has a remote). It refuses a file that looks like
-it holds a secret, and refuses to push a private app (anything but `visibility: public` in `aimbrace.yaml`) to a public
+it holds a secret, and refuses to push a private app (anything but `visibility: public` in `blend.yaml`) to a public
 remote.
 
 Set `AIMBRACE_HOME` to keep data elsewhere, and `AIMBRACE_PORT` to choose the first port tried.

@@ -150,7 +150,7 @@ describe('init', () => {
     expect(existsSync(join(dir, '.gitignore'))).toBe(true)
     expect(existsSync(join(dir, 'template.json'))).toBe(false)
     expect(manifest(dir).dependencies).toEqual({ '@deepseek-ai/cordis': '4.0.4', yaml: '2.9.0' })
-    expect(existsSync(join(dir, 'aimbrace.yaml'))).toBe(true)
+    expect(existsSync(join(dir, 'blend.yaml'))).toBe(true)
     expect(session.out()).toContain('created plain (app)')
     expect(session.out()).toContain('cd plain\n  npm install\n  npm run dev')
     expect(session.installed).toEqual([])

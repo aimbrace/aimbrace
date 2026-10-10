@@ -1,0 +1,58 @@
+# The app as data, in ACRYL's Blend format (blends.acryl.dev/v1alpha1): which plugins it mounts, in what order, with what config.
+# Edit this, not app.ts, to switch a plugin off (disabled: true) or change its config. `npm run lock` records what the app is built from.
+# Order matters: http comes before extensions, because installed extensions start again at boot and may add routes.
+apiVersion: blends.acryl.dev/v1alpha1
+kind: Blueprint
+metadata:
+  id: aimbrace.__APP_NAME__
+  name: __APP_NAME__
+  version: 0.1.0
+  visibility: private # `npm run save` never pushes a private app to a public remote
+spec:
+  runtime: cordis
+  parameters:
+    # The address the server listens on.
+    hostname: { type: string, default: 127.0.0.1 }
+    # Steps an agent run may take.
+    steps: { type: number, default: 6 }
+    # Where task records are kept: jsonl (a text file) or sqlite.
+    taskStore: { type: string, default: jsonl }
+    # When true, a plugin the agent installs waits for POST /extensions/approve.
+    approval: { type: boolean, default: false }
+  rows:
+    - id: tasks
+      name: tasks
+      config:
+        store: "{{parameters.taskStore}}"
+    - id: model
+      name: model
+    - id: tools
+      name: tools
+    - id: memory
+      name: memory
+    - id: agent
+      name: agent
+      config:
+        steps: "{{parameters.steps}}"
+    - id: http
+      name: http
+    - id: events
+      name: events
+      config:
+        topics: [tasks/changed, extensions/changed]
+    - id: sandbox
+      name: sandbox
+    - id: extensions
+      name: extensions
+      config:
+        approval: "{{parameters.approval}}"
+    - id: builder
+      name: builder
+    - id: save
+      name: save
+    - id: routes
+      name: routes
+    - id: server
+      name: server
+      config:
+        hostname: "{{parameters.hostname}}"

@@ -1,6 +1,6 @@
 {
   "name": "manifest",
-  "description": "The app as data: aimbrace.yaml lists ordered plugin rows with config, parameters and on/off switches; validated, composed and locked.",
+  "description": "The app as data: blend.yaml lists ordered plugin rows with config, parameters and on/off switches; validated, composed and locked.",
   "requires": ["digest"],
   "inject": [],
   "provides": [],
@@ -8,5 +8,5 @@
     "@deepseek-ai/cordis": "4.0.4",
     "yaml": "2.9.0"
   },
-  "mount": "in src/app.ts: const manifest = loadManifest(join(chosen.root, 'aimbrace.yaml')); await compose(root, manifest, registry)"
+  "mount": "in src/app.ts: const manifest = loadManifest(join(chosen.root, 'blend.yaml')); await compose(root, manifest, registry)"
 }

@@ -25,7 +25,7 @@ export const routes = {
         },
       })),
     )
-    // The owner's decision on an install that is waiting (the `approval` parameter in aimbrace.yaml).
+    // The owner's decision on an install that is waiting (the `approval` parameter in blend.yaml).
     for (const [path, decide] of [
       ['/extensions/approve', (name: string) => ctx.extensions.approve(name)],
       ['/extensions/deny', (name: string) => ctx.extensions.deny(name)],

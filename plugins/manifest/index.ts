@@ -1,9 +1,12 @@
 /**
- * The app manifest (`aimbrace.yaml`): the app as data.
+ * The app manifest (`blend.yaml`): the app as data, in ACRYL's own Blend format (`blends.acryl.dev/v1alpha1`).
  *
- * Extracted from ACRYL Blends (`runtime/blends-core`): an app is an ordered list of plugin rows (`id`, `use`, `config`, `disabled`)
- * with typed parameters substituted into config as `{{parameters.name}}`, validated into structured diagnostics (a code and a path,
- * never a bare "invalid"), and locked with content digests so a reviewer can see exactly what an app is built from.
+ * Extracted from ACRYL Blends (`runtime/blends-core`). A manifest this plugin accepts is a valid ACRYL `blend.yaml`: a test checks
+ * the templates' manifests against ACRYL's JSON schema, so an app can move into ACRYL without conversion. What it reads today is a
+ * `Blueprint` with ordered `spec.rows` (`id` is the slot, `name` the plugin it loads, optional `config` and `disabled`) and typed
+ * `spec.parameters` substituted into config as `{{parameters.name}}`. Inheritance (`extends`, `lineage`, `overrides`) is part of the
+ * format but not read yet, and is reported as `unsupported` instead of being ignored. Problems are diagnostics with a code and a
+ * path, never a bare "invalid"; a lock records content digests so a reviewer sees what an app is built from.
  *
  * The code an app can use stays in `src/app.ts` as a static registry of imports (so it type-checks); the manifest chooses, orders,
  * configures and switches those plugins. Extensions are not listed here: they come and go while the app runs.
@@ -13,7 +16,9 @@ import { existsSync, readFileSync } from 'node:fs'
 import type { Context, Fiber } from '@deepseek-ai/cordis'
 import { parse } from 'yaml'
 
-export const API_VERSION = 'aimbrace/v1'
+export const API_VERSION = 'blends.acryl.dev/v1alpha1'
+/** The file name ACRYL uses for an app definition. */
+export const MANIFEST_FILE = 'blend.yaml'
 
 export type ParameterType = 'string' | 'number' | 'boolean'
 export type ParameterValue = string | number | boolean
@@ -21,10 +26,17 @@ export type ParameterValue = string | number | boolean
 export interface ParameterDeclaration {
   readonly type: ParameterType
   readonly default: ParameterValue
-  readonly description?: string
 }
 
-/** One composition row: `id` is the slot, `use` the registry entry it mounts (defaults to the id). */
+/** A row as written in `spec.rows`. */
+export interface BlendRow {
+  readonly id: string
+  readonly name: string
+  readonly config?: Readonly<Record<string, unknown>>
+  readonly disabled?: boolean
+}
+
+/** A row as the app mounts it: `use` is the registry entry the row's `name` selects. */
 export interface Row {
   readonly id: string
   readonly use: string
@@ -32,21 +44,32 @@ export interface Row {
   readonly disabled?: boolean
 }
 
+export interface Metadata {
+  readonly id: string
+  readonly name: string
+  readonly version: string
+  readonly category?: string
+  readonly description?: string
+  readonly license?: string
+  /** Anything but an explicit `public` is private: `save` never pushes a private app to a public remote. */
+  readonly visibility?: 'private' | 'public'
+}
+
 export interface Manifest {
   readonly apiVersion: typeof API_VERSION
-  readonly kind: 'App'
-  readonly metadata: {
-    readonly name: string
-    readonly version: string
-    readonly description?: string
+  readonly kind: 'Blueprint'
+  readonly metadata: Metadata
+  readonly spec: {
+    readonly runtime: 'cordis'
+    readonly parameters?: Readonly<Record<string, ParameterDeclaration>>
+    readonly rows?: readonly BlendRow[]
   }
-  readonly parameters: Readonly<Record<string, ParameterDeclaration>>
-  readonly plugins: readonly Row[]
 }
 
 export type DiagnosticCode =
   | 'parse-error'
   | 'schema-error'
+  | 'unsupported'
   | 'duplicate-row-id'
   | 'unknown-plugin'
   | 'dangling-parameter-reference'
@@ -72,12 +95,27 @@ export class ManifestError extends Error {
   }
 }
 
-const ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+const DEFINITION_ID = /^[a-z0-9]+(\.[a-z0-9-]+)+$/
+const ROW_ID = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+const SEMVER =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
 const PARAMETER = /^[A-Za-z][A-Za-z0-9_-]*$/
 const TOKEN = /\{\{parameters\.([A-Za-z0-9_-]+)\}\}/g
 const WHOLE_TOKEN = /^\{\{parameters\.([A-Za-z0-9_-]+)\}\}$/
-const TOP_FIELDS = new Set(['apiVersion', 'kind', 'metadata', 'parameters', 'plugins'])
-const ROW_FIELDS = new Set(['id', 'use', 'config', 'disabled'])
+const TOP_FIELDS = new Set(['apiVersion', 'kind', 'metadata', 'spec'])
+const METADATA_FIELDS = new Set([
+  'id',
+  'name',
+  'version',
+  'category',
+  'description',
+  'license',
+  'visibility',
+])
+const SPEC_FIELDS = new Set(['runtime', 'parameters', 'rows'])
+const INHERITANCE_FIELDS = new Set(['extends', 'lineage', 'overrides'])
+const ROW_FIELDS = new Set(['id', 'name', 'config', 'disabled'])
+const PARAMETER_FIELDS = new Set(['type', 'default'])
 const TYPES = new Set<ParameterType>(['string', 'number', 'boolean'])
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -97,8 +135,8 @@ function walkStrings(
 }
 
 /**
- * Validate a parsed document. An empty list means valid. `known` is the registry's names, so an unknown `use` is reported here, before
- * anything is mounted.
+ * Validate a parsed document. An empty list means valid. `known` is the registry's names, so an unknown row `name` is reported here,
+ * before anything is mounted.
  */
 export function validate(document: unknown, known?: Iterable<string>): Diagnostic[] {
   const problems: Diagnostic[] = []
@@ -110,63 +148,100 @@ export function validate(document: unknown, known?: Iterable<string>): Diagnosti
     if (!TOP_FIELDS.has(key)) add('schema-error', key, `unknown field '${key}'`)
   if (document.apiVersion !== API_VERSION)
     add('schema-error', 'apiVersion', `must be '${API_VERSION}'`)
-  if (document.kind !== 'App') add('schema-error', 'kind', "must be 'App'")
+  if (document.kind === 'Blend')
+    add(
+      'unsupported',
+      'kind',
+      'a Blend needs a lineage to its Blueprint, which is not read yet; use kind: Blueprint',
+    )
+  else if (document.kind !== 'Blueprint') add('schema-error', 'kind', "must be 'Blueprint'")
+
   const metadata = document.metadata
   if (!isObject(metadata))
-    add('schema-error', 'metadata', 'missing required field metadata (name, version)')
+    add('schema-error', 'metadata', 'missing required field metadata (id, name, version)')
   else {
-    if (typeof metadata.name !== 'string' || !ID.test(metadata.name))
-      add('schema-error', 'metadata.name', 'must be lowercase letters, digits and dashes')
-    if (typeof metadata.version !== 'string' || metadata.version === '')
-      add('schema-error', 'metadata.version', 'missing required field version')
+    for (const key of Object.keys(metadata))
+      if (!METADATA_FIELDS.has(key))
+        add('schema-error', `metadata.${key}`, `unknown field '${key}'`)
+    if (typeof metadata.id !== 'string' || !DEFINITION_ID.test(metadata.id))
+      add('schema-error', 'metadata.id', "must be a dotted id such as 'aimbrace.my-app'")
+    if (typeof metadata.name !== 'string' || metadata.name === '')
+      add('schema-error', 'metadata.name', 'missing required field name')
+    if (typeof metadata.version !== 'string' || !SEMVER.test(metadata.version))
+      add('schema-error', 'metadata.version', 'must be a semantic version such as 0.1.0')
+    if (
+      metadata.visibility !== undefined &&
+      metadata.visibility !== 'private' &&
+      metadata.visibility !== 'public'
+    )
+      add('schema-error', 'metadata.visibility', "must be 'private' or 'public'")
   }
 
+  const spec = document.spec
   const declared = new Map<string, ParameterType>()
-  const parameters = document.parameters ?? {}
+  const used = new Set<string>()
+  const registry = known ? new Set(known) : undefined
+  const ids = new Set<string>()
+  if (!isObject(spec)) {
+    add('schema-error', 'spec', 'missing required field spec (runtime)')
+    return problems
+  }
+  for (const key of Object.keys(spec)) {
+    if (INHERITANCE_FIELDS.has(key))
+      add('unsupported', `spec.${key}`, `'${key}' is part of the Blend format but is not read yet`)
+    else if (!SPEC_FIELDS.has(key)) add('schema-error', `spec.${key}`, `unknown field '${key}'`)
+  }
+  if (spec.runtime !== 'cordis') add('schema-error', 'spec.runtime', "must be 'cordis'")
+
+  const parameters = spec.parameters ?? {}
   if (!isObject(parameters))
-    add('schema-error', 'parameters', 'must be a map of name to { type, default }')
+    add('schema-error', 'spec.parameters', 'must be a map of name to { type, default }')
   else {
     for (const [name, declaration] of Object.entries(parameters)) {
-      const path = `parameters.${name}`
+      const path = `spec.parameters.${name}`
       if (!PARAMETER.test(name))
         add('schema-error', path, 'a parameter name is letters, digits, _ and -')
       if (!isObject(declaration) || !TYPES.has(declaration.type as ParameterType)) {
         add('schema-error', `${path}.type`, "must be 'string', 'number' or 'boolean'")
         continue
       }
+      for (const key of Object.keys(declaration))
+        if (!PARAMETER_FIELDS.has(key))
+          add('schema-error', `${path}.${key}`, `unknown field '${key}'`)
       if (typeof declaration.default !== declaration.type)
         add('parameter-type-mismatch', `${path}.default`, `must be a ${declaration.type}`)
       declared.set(name, declaration.type as ParameterType)
     }
   }
 
-  const used = new Set<string>()
-  const registry = known ? new Set(known) : undefined
-  const ids = new Set<string>()
-  if (!Array.isArray(document.plugins))
-    add('schema-error', 'plugins', 'must be a list of plugin rows')
+  const rows = spec.rows ?? []
+  if (!Array.isArray(rows)) add('schema-error', 'spec.rows', 'must be a list of rows')
   else {
-    for (const [index, row] of (document.plugins as unknown[]).entries()) {
-      const path = `plugins[${index}]`
+    for (const [index, row] of (rows as unknown[]).entries()) {
+      const path = `spec.rows[${index}]`
       if (!isObject(row)) {
-        add('schema-error', path, 'a row must be a map with at least an id')
+        add('schema-error', path, 'a row must be a map with an id and a name')
         continue
       }
       for (const key of Object.keys(row))
         if (!ROW_FIELDS.has(key)) add('schema-error', `${path}.${key}`, `unknown field '${key}'`)
-      if (typeof row.id !== 'string' || !ID.test(row.id)) {
+      if (typeof row.id !== 'string' || !ROW_ID.test(row.id)) {
         add('schema-error', `${path}.id`, 'must be lowercase letters, digits and dashes')
         continue
       }
       if (ids.has(row.id)) add('duplicate-row-id', `${path}.id`, `the id '${row.id}' is used twice`)
       ids.add(row.id)
-      const use = row.use ?? row.id
-      if (typeof use !== 'string') add('schema-error', `${path}.use`, 'must be a plugin name')
-      else if (registry && !registry.has(use))
+      if (typeof row.name !== 'string' || row.name === '')
+        add(
+          'schema-error',
+          `${path}.name`,
+          'missing required field name (the plugin this row loads)',
+        )
+      else if (registry && !registry.has(row.name))
         add(
           'unknown-plugin',
-          `${path}.use`,
-          `no plugin '${use}' in the app's registry (known: ${[...registry].join(', ')})`,
+          `${path}.name`,
+          `no plugin '${row.name}' in the app's registry (known: ${[...registry].join(', ')})`,
         )
       if (row.disabled !== undefined && typeof row.disabled !== 'boolean')
         add('schema-error', `${path}.disabled`, 'must be true or false')
@@ -185,7 +260,7 @@ export function validate(document: unknown, known?: Iterable<string>): Diagnosti
   }
   for (const name of declared.keys())
     if (!used.has(name))
-      add('unused-parameter', `parameters.${name}`, `'${name}' is declared but not used`)
+      add('unused-parameter', `spec.parameters.${name}`, `'${name}' is declared but not used`)
   return problems
 }
 
@@ -207,6 +282,8 @@ function substitute(value: unknown, values: Readonly<Record<string, ParameterVal
 
 /** A manifest with its parameters resolved: every row's config has its tokens replaced, typed where a value is one whole token. */
 export interface ResolvedManifest extends Manifest {
+  /** The rows to mount, in order: `use` is the registry entry each row's `name` selects. */
+  readonly plugins: readonly Row[]
   readonly values: Readonly<Record<string, ParameterValue>>
   /** sha256 of the manifest file's bytes. */
   readonly digest: string
@@ -238,46 +315,36 @@ export function loadManifest(
     ])
   }
   const diagnostics = validate(document, options.known)
-  const raw = document as Omit<Manifest, 'plugins'> & {
-    plugins: Array<Omit<Row, 'use'> & { use?: string }>
-  }
+  const raw = document as Manifest
+  const declarations = raw.spec?.parameters ?? {}
   const values: Record<string, ParameterValue> = {}
-  for (const [name, declaration] of Object.entries(raw.parameters ?? {}))
-    values[name] = declaration.default
+  for (const [name, declaration] of Object.entries(declarations)) values[name] = declaration.default
   for (const [name, value] of Object.entries(options.values ?? {})) {
-    const declared = raw.parameters?.[name]
+    const declared = declarations[name]
     if (!declared)
       diagnostics.push({
         code: 'parameter-override-unknown',
-        path: `parameters.${name}`,
+        path: `spec.parameters.${name}`,
         message: `no parameter '${name}' to set`,
       })
     else if (typeof value !== declared.type)
       diagnostics.push({
         code: 'parameter-type-mismatch',
-        path: `parameters.${name}`,
+        path: `spec.parameters.${name}`,
         message: `must be a ${declared.type}`,
       })
     else values[name] = value
   }
   if (diagnostics.length > 0) throw new ManifestError(file, diagnostics)
-  const plugins: Row[] = raw.plugins.map((row) => ({
+  const plugins: Row[] = (raw.spec.rows ?? []).map((row) => ({
     id: row.id,
-    use: row.use ?? row.id,
+    use: row.name,
     ...(row.config === undefined
       ? {}
       : { config: substitute(row.config, values) as Record<string, unknown> }),
     ...(row.disabled === undefined ? {} : { disabled: row.disabled }),
   }))
-  return {
-    apiVersion: API_VERSION,
-    kind: 'App',
-    metadata: raw.metadata,
-    parameters: raw.parameters ?? {},
-    plugins,
-    values,
-    digest: createHash('sha256').update(text).digest('hex'),
-  }
+  return { ...raw, plugins, values, digest: createHash('sha256').update(text).digest('hex') }
 }
 
 /** What an app can mount: a Cordis plugin per name. */
@@ -289,7 +356,7 @@ export type Registry = Readonly<Record<string, unknown>>
  */
 export async function compose(
   root: Context,
-  manifest: Pick<Manifest, 'plugins'>,
+  manifest: Pick<ResolvedManifest, 'plugins'>,
   registry: Registry,
   overrides: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {},
 ): Promise<Fiber[]> {

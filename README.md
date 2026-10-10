@@ -23,7 +23,7 @@ on top. It is a library of Cordis plugins extracted from ACRYL, and a command th
 - **extensions**: install, update and remove plugins while the app runs; a failed update keeps the previous version
 - **builder** and **agent**: an agent that writes, installs and checks plugins in the app it runs in
 - **tasks**: durable records of every run and tool call, readable after a restart
-- **manifest**: the app as data (`aimbrace.yaml`), with parameters, diagnostics and a lock
+- **manifest**: the app as data (`blend.yaml`), with parameters, diagnostics and a lock
 - **save**: commit the app, refusing secrets and public remotes for private apps
 
 ```sh

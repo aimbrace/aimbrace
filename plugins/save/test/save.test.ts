@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { findSecrets, type GitPort, saveApp, saveFolder } from '../index.ts'
 
 const PRIVATE =
-  'apiVersion: aimbrace/v1\nkind: App\nmetadata: { name: shop, version: 1.0.0 }\nplugins: []\n'
+  'apiVersion: blends.acryl.dev/v1alpha1\nkind: Blueprint\nmetadata: { id: aimbrace.shop, name: shop, version: 1.0.0 }\nspec: { runtime: cordis }\n'
 const PUBLIC = PRIVATE.replace('version: 1.0.0', 'version: 1.0.0, visibility: public')
 
 test('finds keys, secret files and assigned secrets, and leaves ordinary text alone', () => {
@@ -82,7 +82,7 @@ test('a secret stops the save and everything is unstaged; nothing staged means n
 test('saves a real app folder with git, and refuses it once a secret appears', () => {
   const dir = mkdtempSync(join(tmpdir(), 'save-test-'))
   try {
-    writeFileSync(join(dir, 'aimbrace.yaml'), PRIVATE)
+    writeFileSync(join(dir, 'blend.yaml'), PRIVATE)
     writeFileSync(join(dir, 'index.ts'), 'export const x = 1\n')
     execFileSync('git', ['init', '--quiet'], { cwd: dir })
     execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: dir })

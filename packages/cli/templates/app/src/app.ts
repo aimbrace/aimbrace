@@ -7,11 +7,11 @@ import { compose, loadManifest, type ParameterValue } from './plugins/manifest/i
 import { server } from './plugins/server/index.ts'
 import { routes } from './routes.ts'
 
-/** The plugins this app's code provides. `aimbrace.yaml` chooses, orders and configures them. */
+/** The plugins this app's code provides. `blend.yaml` chooses, orders and configures them. */
 export const registry = { http, routes, server }
 
 /** The manifest next to this app's source. */
-export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'aimbrace.yaml')
+export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'blend.yaml')
 
 export interface App {
   readonly root: Context

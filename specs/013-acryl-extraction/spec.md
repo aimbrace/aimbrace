@@ -52,7 +52,7 @@ package boundaries.
 - **FR4** `builder` (agent template): tools `list_plugins`, `read_plugin`, `write_plugin` (confined to the app's
   extensions folder), `install_plugin`, `remove_plugin`; every answer is the structured Extensions result. The offline
   scripted model can build a plugin that adds a route, so the whole loop is tested without a network.
-- **FR5** `manifest`: `aimbrace.yaml` lists plugin rows (`id`, `name`, `config`, `disabled`) and parameters;
+- **FR5** `manifest`: `blend.yaml` (ACRYL's Blend format, `blends.acryl.dev/v1alpha1`) lists plugin rows (`id`, `name`, `config`, `disabled`) and parameters;
   `parse`, `validate` (with diagnostics), `resolve` parameters, and a lock with digests; the app composes from it.
 - **FR6** `save`: commit the app folder with git, refusing when a file contains a secret pattern; `aimbrace save`.
 - **FR7** Templates `app` and `agent` are TypeScript on Node and list their library plugins; each generated project

@@ -5,5 +5,5 @@
   "inject": ["http"],
   "provides": [],
   "dependencies": { "@deepseek-ai/cordis": "4.0.4" },
-  "mount": "add a row to aimbrace.yaml: events, with config { topics: ['tasks/changed', 'extensions/changed'] }"
+  "mount": "add a row to blend.yaml: events, with config { topics: ['tasks/changed', 'extensions/changed'] }"
 }

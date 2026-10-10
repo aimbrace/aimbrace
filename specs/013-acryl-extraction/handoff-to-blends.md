@@ -24,7 +24,7 @@ product on its own, and apps such as WebBoxes.ai are built by other agents on AC
 | **Install must be a transaction:** check, stage by content digest, import fresh, start, self-check, record, answer; on failure the previous version runs again | extensions plugin, 11 tests; verify drives create, update, broken update, restart, remove | This is the "evolution transaction" Blends needs. ACRYL's `acryl-extension-context` already does it with pnpm; the prototype shows it without |
 | **Real state beats a claim of "done":** `active`, `pending` (with missing services) or `failed` (with the real error) | every install answer | Keep structured results as the only thing an agent ever sees |
 | **Records must be written before the answer** and must survive a crash | tasks plugin, 4 tests; task records read back after a restart | Adopt as the task contract (see below) |
-| **The app as data is cheap and useful:** rows, parameters, diagnostics with paths, a lock of digests | manifest plugin, 5 tests | Converge `aimbrace.yaml` with `blend.yaml` (see mapping) |
+| **The app as data is cheap and useful:** rows, parameters, diagnostics with paths, a lock of digests | manifest plugin, 5 tests | The manifest is now ACRYL's `blend.yaml` format (see mapping) |
 | **Real models need a small adapter, not an SDK:** one `fetch` call; thinking models need their reasoning sent back | openai plugin; found by running DeepSeek | Provider plugins stay thin, behind one `model` service |
 | **Copying beats importing for a prototype:** no runtime package, the app owns the code | `aimbrace add` | Blends differs on purpose: a Blend must be upgradable from its Blueprint, so copying is the wrong default there |
 
@@ -36,7 +36,7 @@ product on its own, and apps such as WebBoxes.ai are built by other agents on AC
 | `settings` | `acryl-settings` | ported as is; ACRYL's stays the reference |
 | `extensions` | `acryl-extension-context` (pnpm, Harness Loader, hot shim) | prototype minus pnpm and the Loader; lessons to feed back: structured results, `check`, restore-previous on every failure path |
 | `builder` + `agent` | the agent's `acryl_install_plugin` tool | one tool per step and an explicit state read-back worked well with a real model |
-| `manifest` (`aimbrace.yaml`) | `blends-core` (`blend.yaml`: Blueprint and Blend, `extends`, overrides, lineage, parameters, lock) | the prototype has rows, parameters, diagnostics, lock only. Missing on purpose: Blueprint inheritance and overrides. Converge by making `aimbrace.yaml` a strict subset of `blend.yaml` |
+| `manifest` (`blend.yaml`) | `blends-core` (`blend.yaml`: Blueprint and Blend, `extends`, overrides, lineage, parameters, lock) | converged: the prototype's file is a valid `blend.yaml` (a Blueprint with rows, parameters, diagnostics and a lock; checked against ACRYL's JSON schema). Missing on purpose: Blends (`lineage`, `extends`, `overrides`), reported as `unsupported` |
 | `save` | `app-persistence` | ported; ACRYL's stays the reference |
 | `tasks` | none (chat transcripts are the record) | new for ACRYL: see Pi Durable ideas |
 
@@ -64,8 +64,7 @@ optional behind interfaces.
 3. ~~Approval gate for extensions (C).~~ Done.
 4. ~~Permissions per extension and a child-process runner for untrusted ones (D).~~ Done for tools (sandbox); the network is the open part.
 5. ~~Event stream for observation (E).~~ Done.
-6. Make `aimbrace.yaml` a strict subset of `blend.yaml` and read both with one parser, then decide how a Blend upgrades from
-   its Blueprint (the part the prototype deliberately does not have).
+6. ~~Make the manifest a valid `blend.yaml`.~~ Done: the file is `blend.yaml` in `blends.acryl.dev/v1alpha1`, checked against ACRYL's own JSON schema. What remains is the part the prototype deliberately does not have: Blends (`lineage`, `extends`, `overrides`) and how a Blend upgrades from its Blueprint.
 
 Open question for the owner: whether the Blends framework keeps Cordis plugins as the only unit (this prototype says yes) while a
 Blueprint can still ship non-plugin assets (docs, data, templates).

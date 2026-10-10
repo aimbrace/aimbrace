@@ -2,7 +2,7 @@
  * Save the app to its own repository: commit, and push when it has a remote. Extracted from ACRYL (`runtime/app-persistence`), as a
  * use case over two ports (Clean Architecture): git and the hosting service. Two guards run before anything is committed:
  *
- * - a private app (anything but an explicit `visibility: public` in aimbrace.yaml) never goes to a remote the host says is public;
+ * - a private app (anything but an explicit `visibility: public` in blend.yaml) never goes to a remote the host says is public;
  * - a staged file that looks like it holds a secret stops the save, and everything is unstaged again.
  */
 import { parse } from 'yaml'
@@ -65,7 +65,7 @@ export function saveApp(
   ) {
     return {
       status: 'refused',
-      reason: `this app is private (aimbrace.yaml metadata.visibility) but its remote ${remote} is public. Make the remote private, or set visibility: public if you mean to open it.`,
+      reason: `this app is private (blend.yaml metadata.visibility) but its remote ${remote} is public. Make the remote private, or set visibility: public if you mean to open it.`,
     }
   }
   if (!git.isRepository()) git.init()

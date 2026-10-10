@@ -12,7 +12,7 @@ import { type Lock, loadManifest, lock } from './index.ts'
 export const LOCK_FILE = 'aimbrace.lock.json'
 
 export function writeLock(appRoot: string): Lock {
-  const manifest = loadManifest(join(appRoot, 'aimbrace.yaml'))
+  const manifest = loadManifest(join(appRoot, 'blend.yaml'))
   const pluginsDir = join(appRoot, 'src', 'plugins')
   const sources: Record<string, string> = {}
   if (existsSync(pluginsDir)) {

@@ -71,7 +71,7 @@ plugins. Scripted-model commands: `create tool <name> <factor>`, `run tool <name
 
 ## Approval
 
-Set `approval: true` in `aimbrace.yaml` (a parameter on the `extensions` row) and an install does not run until the owner
+Set `approval: true` in `blend.yaml` (a parameter on the `extensions` row) and an install does not run until the owner
 decides. The install answers `stage: "approval"`, the request is written to the ledger, and nothing is installed. The owner
 reads `GET /extensions` (`waitingForApproval`) and answers `POST /extensions/approve {"name": ...}` or
 `POST /extensions/deny {"name": ...}`. Approval is for that exact version: if the source changes after the request, approving

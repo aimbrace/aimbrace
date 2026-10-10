@@ -10,5 +10,5 @@ is no AIMBRACE runtime to import.
 - [Getting started](getting-started.md) - create an app, run it, add plugins, lock it, save it
 - [The plugin library](plugins.md) - every plugin: what it does, its service, its config, where it came from
 - [Extending a running app](extending-apps.md) - extensions, the builder, durable tasks; how an agent writes a plugin
-- [The app manifest](manifest.md) - `aimbrace.yaml`: the app as data, parameters, diagnostics, the lock
+- [The app manifest](manifest.md) - `blend.yaml`: the app as data, parameters, diagnostics, the lock
 - [Building with Cordis](cordis.md) - plugins, services, `inject`, effects, events, a scope per task, HTTP

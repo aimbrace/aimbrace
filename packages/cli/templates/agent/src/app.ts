@@ -15,7 +15,7 @@ import { server } from './plugins/server/index.ts'
 import { tasks } from './plugins/tasks/index.ts'
 import { routes } from './routes.ts'
 
-/** The plugins this app's code provides. `aimbrace.yaml` chooses, orders and configures them. */
+/** The plugins this app's code provides. `blend.yaml` chooses, orders and configures them. */
 export const registry = {
   tasks,
   model,
@@ -33,7 +33,7 @@ export const registry = {
 }
 
 /** The manifest next to this app's source. */
-export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'aimbrace.yaml')
+export const MANIFEST = join(fileURLToPath(new URL('..', import.meta.url)), 'blend.yaml')
 
 export interface App {
   readonly root: Context
@@ -68,7 +68,7 @@ export async function createApp(
       ...(options.model ? { model: { ...options.model } } : {}),
       // Runtime values the manifest cannot hold: the manifest's own digest (every task records it), and who may install.
       tasks: { manifest: `sha256:${manifest.digest}` },
-      // The `approval` parameter in aimbrace.yaml (the extensions row) turns this source into one that asks.
+      // The `approval` parameter in blend.yaml (the extensions row) turns this source into one that asks.
       extensions: { sources: [{ dir: extensionsDir, trust: 'install' }] },
       builder: { dir: extensionsDir },
       server: { port: chosen.port.start, scan: chosen.port.scan },

@@ -19,9 +19,9 @@ export {
 } from './save.ts'
 export { findSecrets, type SecretFinding } from './secrets.ts'
 
-/** Save the app folder: its aimbrace.yaml decides the visibility. */
+/** Save the app folder: its blend.yaml decides the visibility. */
 export function saveFolder(appRoot: string, message: string): SaveResult {
-  const manifestText = readFileSync(join(appRoot, 'aimbrace.yaml'), 'utf8')
+  const manifestText = readFileSync(join(appRoot, 'blend.yaml'), 'utf8')
   return saveApp({ manifestText, message }, gitCli(appRoot), githubHosting(appRoot))
 }
 

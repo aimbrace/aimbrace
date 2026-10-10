@@ -51,7 +51,7 @@ node <aimbrace>/packages/cli/bin/aimbrace.js add settings        # copy one into
 npm install                                                       # new dependencies, if it added any
 ```
 
-Then mount it: add it to the registry in `src/app.ts` and a row in `aimbrace.yaml`. See [The plugin library](plugins.md).
+Then mount it: add it to the registry in `src/app.ts` and a row in `blend.yaml`. See [The plugin library](plugins.md).
 
 ## Lock and save
 
@@ -67,7 +67,7 @@ public remote. Nothing is committed when it refuses.
 
 | Path | What |
 |---|---|
-| `aimbrace.yaml` | the app as data: plugin rows, config, parameters ([manifest](manifest.md)) |
+| `blend.yaml` | the app as data: plugin rows, config, parameters ([manifest](manifest.md)) |
 | `src/app.ts` | the registry of plugins your code provides; mounts the manifest |
 | `src/routes.ts` | your own plugin |
 | `src/plugins/` | plugins copied from the library; yours to edit |
